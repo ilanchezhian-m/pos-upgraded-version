@@ -271,9 +271,22 @@ function BillingReceipt({ bill }) {
           </div>
       </div>
       
+               {/* <div className="divider"></div> */}
+              
+      <div className="receipt-section">
+        <div className="receipt-row" style={{ lineHeight: '0.5' }}>
+          <span className="label">Name:0000000000--`$(M:</span>
+        </div>
+        <div className="receipt-row" style={{ lineHeight: '0.5'}}>
+          <span className="label">0000000000</span>
+        </div>
+        <div className="receipt-row" style={{ lineHeight: '0.5'}}>
+          <span className="label">Adr:0000000</span>
+        </div>
+      </div>
               <div className="divider"></div>
-
-       
+              
+     
 
       <div className="receipt-section">
         <div className="receipt-row">
@@ -294,12 +307,13 @@ function BillingReceipt({ bill }) {
         </div>
       </div>
 
-      <div className="divider"></div>
+      {/* <div className="divider"></div> */}
 
       <div className="receipt-section items-section">
         <div className="items-table">
           <div className="items-header billing">
-            <div className="col-item">No.Item</div>
+            <div className="col-sno">No.</div>
+            <div className="col-item">Item</div>
             <div className="col-qty">Qty.</div>
             <div className="col-price">Price</div>
             <div className="col-total">Amount</div>
@@ -323,7 +337,7 @@ function BillingReceipt({ bill }) {
       </div>
 
 
-      <div className="divider"></div>
+      {/* <div className="divider"></div> */}
       <div className="receipt-totals">
         <div className="total-row total-final">
           <span className="total-label">Grand Total:</span>
