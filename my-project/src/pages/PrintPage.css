@@ -301,9 +301,10 @@
 
 .receipt-title {
   margin: 0 0 4px 0;
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 800;
   letter-spacing: 0.8px;
+  white-space: nowrap;
 }
 
 .receipt-subtitle {
@@ -375,14 +376,21 @@
   background: #f0f0f0;
   font-weight: 700;
   font-size: 11px;
-  text-transform: uppercase;
   letter-spacing: 0.4px;
   border-top: 1px solid #ddd;
   border-bottom: 1px solid #ddd;
 }
 
 .items-header.billing {
-  grid-template-columns: 2fr 0.5fr 0.8fr 0.8fr;
+  grid-template-columns: 0.4fr 2fr 0.5fr 0.8fr 0.8fr;
+}
+
+.items-header .col-item,
+.items-header .col-qty,
+.items-header .col-price,
+.items-header .col-total,
+.items-header .col-sno {
+  text-transform: none;
 }
 
 .items-body {
@@ -401,7 +409,19 @@
 }
 
 .item-row.billing {
-  grid-template-columns: 2fr 0.5fr 0.8fr 0.8fr;
+  grid-template-columns: 0.4fr 2fr 0.5fr 0.8fr 0.8fr;
+}
+
+.col-sno {
+  text-align: center;
+  font-weight: 800;
+}
+
+.sno {
+  display: inline-block;
+  width: 20px;
+  text-align: center;
+  font-weight: 800;
 }
 
 .col-item {
@@ -412,6 +432,7 @@
 .item-name {
   font-weight: 800;
   color: #000;
+  text-transform: none;
 }
 
 .col-qty {
@@ -442,9 +463,10 @@
 
 /* Totals Section */
 .receipt-totals {
-  padding: 10px 12px;
+  padding: 6px 12px;
   border-top: 2px solid #333;
   border-bottom: 2px solid #333;
+  margin-top: 4px;
 }
 
 .total-row {
@@ -462,17 +484,16 @@
   font-size: 14px;
   font-weight: 700;
   padding-top: 8px;
-  border-top: 1px dashed #999;
   margin-top: 8px;
 }
 
 .total-label {
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .total-value {
   text-align: right;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 /* Summary Section */

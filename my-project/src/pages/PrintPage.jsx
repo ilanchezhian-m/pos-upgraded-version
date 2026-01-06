@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { listBills, listOrders, listPrintJobs } from '../lib/db'
+import billLogo from '../assets/bill-logo.png'
 import './PrintPage.css'
 
 function PrintPage() {
@@ -244,21 +245,35 @@ function BillingReceipt({ bill }) {
 
   return (
     <div className="receipt receipt-billing">
-      <div className="receipt-header">
-        <h1 className="receipt-title">TOPI VAPPA BIRIYANI</h1>
+      <div className="receipt-header" style={{ textAlign: 'center' }}>
+        <img src={billLogo} alt="Logo" style={{ width: '200px', marginBottom: '-10px' }} />
+        <h2 className="receipt-title">TOPI VAPPA BIRIYANI - SALEM</h2>
+
+        <div className="receipt-row" style={{ justifyContent: 'center', textAlign: 'center', lineHeight: '0.7'}}>
+            <span className="label">261A, Advaitha Ashram Rd,</span>
+          </div>
+        <div className="receipt-row" style={{ justifyContent: 'center', textAlign: 'center', lineHeight: '0.7' }}>
+            <span className="label">Fairlands, Salem,</span>
+          </div>
+        <div className="receipt-row" style={{ justifyContent: 'center', textAlign: 'center', lineHeight: '0.7' }}>
+            <span className="label">Tamil Nadu 636004</span>
+          </div>
+        
+          <div className="receipt-row" style={{ justifyContent: 'center', textAlign: 'center', lineHeight: '0.7' }}>
+            <span className="label">FSSAI No : 12421018001075</span>
+          </div>
+          <div className="receipt-row" style={{ justifyContent: 'center', textAlign: 'center', lineHeight: '0.7' }}>
+            <span className="label">GST No : 33BZGPG7879D1Z7</span>           
+          </div>
+
+          <div className="receipt-row" style={{ justifyContent: 'center', textAlign: 'center', lineHeight: '0.7' }}>
+            <span className="label">Phone : 7305748889</span>
+          </div>
       </div>
+      
               <div className="divider"></div>
 
-        <div className="receipt-section">
-          <div className="receipt-row">
-            <span className="label">FSSAI No:</span>
-            <span className="value">12421018001075</span>
-          </div>
-          <div className="receipt-row">
-            <span className="label">GST No:</span>
-            <span className="value">33BZGPG7879D1Z7</span>
-          </div>
-        </div>  
+       
 
       <div className="receipt-section">
         <div className="receipt-row">
@@ -284,14 +299,17 @@ function BillingReceipt({ bill }) {
       <div className="receipt-section items-section">
         <div className="items-table">
           <div className="items-header billing">
-            <div className="col-item">Item</div>
-            <div className="col-qty">Qty</div>
+            <div className="col-item">No.Item</div>
+            <div className="col-qty">Qty.</div>
             <div className="col-price">Price</div>
-            <div className="col-total">Total</div>
+            <div className="col-total">Amount</div>
           </div>
           <div className="items-body">
             {bill.items?.map((item, idx) => (
               <div key={idx} className="item-row billing">
+                <div className="col-sno">
+                  <span className="sno">{idx + 1}</span>
+                </div>
                 <div className="col-item">
                   <span className="item-name">{item.name}</span>
                 </div>
@@ -308,28 +326,13 @@ function BillingReceipt({ bill }) {
       <div className="divider"></div>
       <div className="receipt-totals">
         <div className="total-row total-final">
-          <span className="total-label">TOTAL AMOUNT:</span>
+          <span className="total-label">Grand Total:</span>
           <span className="total-value">₹{total}</span>
         </div>
       </div>
-      <div className="divider"></div>
-
-      <div className="receipt-section payment-section">
-        <div className="receipt-row payment-highlight">
-          <span className="label">Payment Method:</span>
-          <span className="value payment-method">{bill.paymentMethod || 'Cash'}</span>
-        </div>
-        <div className="receipt-row">
-          <span className="label">Amount Paid:</span>
-          <span className="value">₹{total}</span>
-        </div>
-      </div>
-
-   
-
       <div className="receipt-footer">
-        <div className="footer-note">Thank you for visiting! 🙏</div>
-        <div className="footer-reference">Invoice: {bill.id.slice(0, 8)}</div>
+        <div className="footer-note">THANKS FOR VISTING US</div>
+        {/* <div className="footer-reference">Invoice: {bill.id.slice(0, 8)}</div> */}
       </div>
     </div>
   )

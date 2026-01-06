@@ -263,7 +263,8 @@ function App() {
       if (allItems.length === 0) return
       
       const totalAmount = allItems.reduce((sum, item) => sum + item.price * item.qty, 0)
-      const orderNumber = getNextOrderNumber()
+      const existingOrderNumber = tableOrders[0]?.orderNumber || tableOrders[0]?.id?.slice(0, 6)
+      const orderNumber = existingOrderNumber || getNextOrderNumber()
       
       const bill = {
         orderId: tableOrders[0]?.id || 'new',
