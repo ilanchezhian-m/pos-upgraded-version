@@ -55,7 +55,7 @@ function App() {
   const getNextOrderNumber = useCallback(() => {
     try {
       const raw = localStorage.getItem('orderNumberCounter')
-      const current = raw ? parseInt(raw, 10) : 1001
+      const current = raw ? parseInt(raw, 10) : 36650
       const next = current + 1
       localStorage.setItem('orderNumberCounter', String(next))
       return current

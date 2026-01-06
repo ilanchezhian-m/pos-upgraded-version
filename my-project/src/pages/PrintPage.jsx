@@ -241,7 +241,11 @@ function KOTReceipt({ order }) {
 function BillingReceipt({ bill }) {
   if (!bill) return <div>Bill not found</div>
 
-    const total = bill.items?.reduce((sum, item) => sum + item.price * item.qty, 0) || bill.total
+  const [tokenNumber] = useState(() => Math.floor(Math.random() * 51) + 50)
+  const subtotal = bill.items?.reduce((sum, item) => sum + (item.price / 1.05) * item.qty, 0) || bill.total
+  const cgst = subtotal * 0.025
+  const sgst = subtotal * 0.025
+  const total = subtotal + cgst + sgst
 
   return (
     <div className="receipt receipt-billing">
@@ -259,12 +263,13 @@ function BillingReceipt({ bill }) {
             <span className="label">Tamil Nadu 636004</span>
           </div>
         
+           <div className="receipt-row" style={{ justifyContent: 'center', textAlign: 'center', lineHeight: '0.7' }}>
+            <span className="label">GST No : 33BZGPG7879D1Z7</span>           
+          </div>
           <div className="receipt-row" style={{ justifyContent: 'center', textAlign: 'center', lineHeight: '0.7' }}>
             <span className="label">FSSAI No : 12421018001075</span>
           </div>
-          <div className="receipt-row" style={{ justifyContent: 'center', textAlign: 'center', lineHeight: '0.7' }}>
-            <span className="label">GST No : 33BZGPG7879D1Z7</span>           
-          </div>
+       
 
           <div className="receipt-row" style={{ justifyContent: 'center', textAlign: 'center', lineHeight: '0.7' }}>
             <span className="label">Phone : 7305748889</span>
@@ -286,28 +291,26 @@ function BillingReceipt({ bill }) {
       </div>
               <div className="divider"></div>
               
-     
-
+    
       <div className="receipt-section">
-        <div className="receipt-row">
-          <span className="label">Order No:</span>
-          <span className="value table-emphasis">{bill.orderNumber || bill.id.slice(0, 8)}</span>
+        <div className="receipt-row" style={{ lineHeight: '0.5' }}>
+          <span className="label">Date : {new Date(bill.createdAt).toLocaleDateString('en-GB')}</span>
+          <span className="label">Dine In : {bill.table}</span>
         </div>
-        <div className="receipt-row">
-          <span className="label">Customer:</span>
-          <span className="value">{bill.customer}</span>
+
+        <div className="receipt-row" style={{ lineHeight: '0.5' }}>
+          <span className="label">{new Date(bill.createdAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false })}</span>
         </div>
+
         <div className="receipt-row">
-          <span className="label">Table / Order:</span>
-          <span className="value table-emphasis">{bill.table}</span>
+          <span className="label">Cashier:cap001</span>
+          <span className="label">Bill No:{bill.orderNumber || bill.id.slice(0, 8)}</span>
         </div>
+
         <div className="receipt-row">
-          <span className="label">Date & Time:</span>
-          <span className="value">{new Date(bill.createdAt).toLocaleString()}</span>
+          <span className="label">Token No: {tokenNumber}</span>
         </div>
       </div>
-
-      {/* <div className="divider"></div> */}
 
       <div className="receipt-section items-section">
         <div className="items-table">
@@ -328,8 +331,8 @@ function BillingReceipt({ bill }) {
                   <span className="item-name">{item.name}</span>
                 </div>
                 <div className="col-qty">{item.qty}</div>
-                <div className="col-price">₹{item.price}</div>
-                <div className="col-total">₹{item.price * item.qty}</div>
+           <div className="col-price">₹{(item.price / 1.05).toFixed(2)}</div>
+                <div className="col-total">₹{((item.price / 1.05) * item.qty).toFixed(2)}</div>
               </div>
             ))}
           </div>
@@ -339,14 +342,37 @@ function BillingReceipt({ bill }) {
 
       {/* <div className="divider"></div> */}
       <div className="receipt-totals">
-        <div className="total-row total-final">
-          <span className="total-label">Grand Total:</span>
-          <span className="total-value">₹{total}</span>
+        <div className="total-row" style={{ justifyContent: 'flex-end', lineHeight: '0.5' }}>
+          <span className="total-label">Total Qty: {bill.items?.reduce((sum, item) => sum + item.qty, 0) || 0}</span>
+          
+           <span className="total-label" style={{ paddingLeft: '5px' }}>Sub: ₹{subtotal.toFixed(2)}</span>
+        </div>
+
+                <div className="total-row" style={{ justifyContent: 'flex-end', lineHeight: '0.5' }}>
+          <span className="total-label"   style={{ paddingRight: '50px' }}>Total</span>
+
+        </div>
+        
+        <div className="total-row" style={{ justifyContent: 'flex-end', lineHeight: '0.5' }}>
+          <span className="total-label">CGST @ 2.5%: ₹{cgst.toFixed(2)}</span>
+
+        </div>
+        <div className="total-row" style={{ justifyContent: 'flex-end', lineHeight: '0.5' }}>
+          <span className="total-label">SGST @ 2.5%: ₹{sgst.toFixed(2)}</span>
+
+     
+        </div>
+        <div className="total-row total-final" style={{ justifyContent: 'flex-end', lineHeight: '0.5' }}>
+          <span className="total-label">Grand Total: ₹{total.toFixed(2)}</span>
+         
         </div>
       </div>
       <div className="receipt-footer">
         <div className="footer-note">THANKS FOR VISTING US</div>
         {/* <div className="footer-reference">Invoice: {bill.id.slice(0, 8)}</div> */}
+          <div className="receipt-row" style={{ justifyContent: 'center', textAlign: 'center', lineHeight: '0.7' }}>
+            <span className="label">FSSAI No : 12421018001075</span>
+          </div>
       </div>
     </div>
   )
