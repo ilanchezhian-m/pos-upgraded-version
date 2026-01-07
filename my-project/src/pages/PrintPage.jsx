@@ -372,7 +372,7 @@ function BillingReceipt({ bill }) {
         {/* <div className="footer-reference">Invoice: {bill.id.slice(0, 8)}</div> */}
           <div className="receipt-row" style={{ justifyContent: 'center', textAlign: 'center', lineHeight: '0.7' }}>
             
-             <div className="footer-note">THANKS FOR VISTING US</div>
+             <div className="footer-note">THANKS FOR VISTING US!</div>
           </div>
       </div>
     </div>
