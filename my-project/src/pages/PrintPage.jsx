@@ -280,13 +280,13 @@ function BillingReceipt({ bill }) {
               
       <div className="receipt-section">
         <div className="receipt-row" style={{ lineHeight: '0.5' }}>
-          <span className="label">Name:0000000000--`$(M:</span>
+          <span className="label-two">Name:0000000000--`$(M:</span>
         </div>
         <div className="receipt-row" style={{ lineHeight: '0.5'}}>
-          <span className="label">0000000000</span>
+          <span className="label-two">0000000000</span>
         </div>
         <div className="receipt-row" style={{ lineHeight: '0.5'}}>
-          <span className="label">Adr:0000000</span>
+          <span className="label-two">Adr:0000000</span>
         </div>
       </div>
               <div className="divider"></div>
@@ -294,24 +294,24 @@ function BillingReceipt({ bill }) {
     
       <div className="receipt-section">
         <div className="receipt-row" style={{ lineHeight: '0.5' }}>
-          <span className="label">Date : {new Date(bill.createdAt).toLocaleDateString('en-GB')}</span>
+          <span className="label-two">Date : {new Date(bill.createdAt).toLocaleDateString('en-GB')}</span>
           <span className="label">Dine In : {bill.table}</span>
         </div>
 
-        <div className="receipt-row" style={{ lineHeight: '0.5' }}>
-          <span className="label">{new Date(bill.createdAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false })}</span>
+        <div className="receipt-row" style={{ lineHeight: '0.5', }}>
+          <span className="label-two">{new Date(bill.createdAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false })}</span>
         </div>
 
         <div className="receipt-row">
-          <span className="label">Cashier:cap001</span>
-          <span className="label">Bill No:{bill.orderNumber || bill.id.slice(0, 8)}</span>
+          <span className="label-two">Cashier:cap001</span>
+          <span className="label-two">Bill No:{bill.orderNumber || bill.id.slice(0, 8)}</span>
         </div>
 
         <div className="receipt-row">
           <span className="label">Token No: {tokenNumber}</span>
         </div>
       </div>
-
+            <div className='divider'></div>
       <div className="receipt-section items-section">
         <div className="items-table">
           <div className="items-header billing">
@@ -321,6 +321,7 @@ function BillingReceipt({ bill }) {
             <div className="col-price">Price</div>
             <div className="col-total">Amount</div>
           </div>
+          <div className='divider'></div>
           <div className="items-body">
             {bill.items?.map((item, idx) => (
               <div key={idx} className="item-row billing">
@@ -340,7 +341,6 @@ function BillingReceipt({ bill }) {
       </div>
 
 
-      {/* <div className="divider"></div> */}
       <div className="receipt-totals">
         <div className="total-row" style={{ justifyContent: 'flex-end', lineHeight: '0.5' }}>
           <span className="total-label">Total Qty: {bill.items?.reduce((sum, item) => sum + item.qty, 0) || 0}</span>
@@ -359,19 +359,20 @@ function BillingReceipt({ bill }) {
         </div>
         <div className="total-row" style={{ justifyContent: 'flex-end', lineHeight: '0.5' }}>
           <span className="total-label">SGST @ 2.5%: ₹{sgst.toFixed(2)}</span>
-
-     
         </div>
+        
         <div className="total-row total-final" style={{ justifyContent: 'flex-end', lineHeight: '0.5' }}>
-          <span className="total-label">Grand Total: ₹{total.toFixed(2)}</span>
-         
+             
+          <span className="total-label-bold">Grand Total: ₹{total.toFixed(2)}</span>
         </div>
       </div>
-      <div className="receipt-footer">
-        <div className="footer-note">THANKS FOR VISTING US</div>
+
+      <div className="receipt-footer" style={{ marginBottom: '0' }}>
+       <span className="label-two">FSSAI Lic No : 12421018001075</span>
         {/* <div className="footer-reference">Invoice: {bill.id.slice(0, 8)}</div> */}
           <div className="receipt-row" style={{ justifyContent: 'center', textAlign: 'center', lineHeight: '0.7' }}>
-            <span className="label">FSSAI No : 12421018001075</span>
+            
+             <div className="footer-note">THANKS FOR VISTING US</div>
           </div>
       </div>
     </div>

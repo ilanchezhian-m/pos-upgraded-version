@@ -322,7 +322,7 @@
 }
 
 .receipt-section {
-  padding: 10px 12px;
+  padding: 5px 10px;
 }
 
 .receipt-row {
@@ -338,6 +338,10 @@
 
 .label {
   font-weight: 800;
+  color: #000;
+}
+.lable-two{
+ font-weight: 700;
   color: #000;
 }
 
@@ -361,7 +365,7 @@
 
 /* Items Section */
 .items-section {
-  padding: 15px 0;
+  padding: 2px 0;
 }
 
 .items-table {
@@ -371,12 +375,16 @@
 .items-header {
   display: grid;
   grid-template-columns: 2fr 0.7fr;
-  gap: 8px;
-  padding: 8px 12px;
+  gap: 10px;
+  padding: 5px 12px;
   background: #ffff ;
   font-weight: 700;
   font-size: 11px;
-  letter-spacing: 0.4px;
+  letter-spacing: 0.6px;
+
+}
+/* a single line */
+.item-liner{
   border-top: 1px solid ;
   border-bottom: 1px solid;
 }
@@ -402,52 +410,57 @@
   display: grid;
   grid-template-columns: 2fr 0.7fr;
   gap: 8px;
-  padding: 8px 12px;
-  border-bottom: 1px solid #f0f0f0;
+  padding: 0px 12px;
+
   font-size: 12px;
   align-items: center;
 }
 
 .item-row.billing {
-  grid-template-columns: 0.4fr 2fr 0.5fr 0.8fr 0.8fr;
+  grid-template-columns: 0.1fr 4fr 0.5fr 0.8fr 0.8fr;
 }
 
 .col-sno {
   text-align: center;
-  font-weight: 800;
+  font-weight: 700;
+  font-size: 12px;
 }
 
 .sno {
   display: inline-block;
   width: 20px;
   text-align: center;
-  font-weight: 800;
+  font-weight: 700;
 }
 
 .col-item {
   display: flex;
   align-items: center;
+  font-size: 12px;
 }
 
 .item-name {
-  font-weight: 800;
+  font-weight: 700;
   color: #000;
   text-transform: none;
 }
 
 .col-qty {
   text-align: center;
-  font-weight: 800;
+  font-weight: 700;
+  font-size: 12px;
 }
 
 .col-price {
   text-align: right;
-  font-weight: 800;
+  font-weight: 700;
+  font-size: 12px;
 }
 
 .col-total {
   text-align: right;
-  font-weight: 800;
+  font-weight: 700;
+  font-size: 12px;
 }
 
 .quantity-badge {
@@ -464,16 +477,16 @@
 /* Totals Section */
 .receipt-totals {
   padding: 6px 12px;
-  border-top: 2px solid #333;
-  border-bottom: 2px solid #333;
-  margin-top: 4px;
+  border-top: 2px solid black;
+  /* border-bottom: 2px solid black; */
+  margin-top: 0px;
 }
 
 .total-row {
   display: flex;
   justify-content: space-between;
   
-  margin-bottom: 8px;
+  margin-bottom: 7px;
   font-size: 12px;
 }
 
@@ -484,12 +497,17 @@
 .total-row.total-final {
   font-size: 14px;
   font-weight: 700;
-  padding-top: 8px;
-  margin-top: 8px;
+  padding-top: 10px;
+  padding-bottom: 15px;
+  border-top: 2px solid black;
+  border-bottom: 2px solid black;
 }
 
 .total-label {
   font-weight: 700;
+}
+.total-label-bold{
+  font-weight: 800;
 }
 
 .total-value {
@@ -605,20 +623,17 @@
 
 /* Footer */
 .receipt-footer {
-  padding: 10px 12px;
+  padding-bottom: 10px;
   text-align: center;
-  border-top: 1px solid #ddd;
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .footer-note {
-  font-weight: 800;
-  margin-bottom: 5px;
-  color: #000;
+  font-weight: 500;
+
 }
 
 .footer-reference {
-  color: #999;
   font-size: 10px;
 }
 
