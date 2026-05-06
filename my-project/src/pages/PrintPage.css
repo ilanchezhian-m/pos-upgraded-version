@@ -640,17 +640,27 @@
 /* Print Media Query */
 @media print {
   @page {
-    size: 72mm auto;
     margin: 0;
+  }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    height: auto !important;
+    overflow: visible !important;
   }
 
   .print-page-container {
     background: white;
+    height: auto !important;
+    display: block !important;
+    overflow: visible !important;
   }
 
-  .receipt {
-    box-shadow: none;
-    border: none;
+  .print-layout {
+    height: auto !important;
+    display: block !important;
+    overflow: visible !important;
   }
 
   .print-header,
@@ -663,23 +673,26 @@
     width: 100%;
     padding: 0;
     background: white;
+    height: auto !important;
+    display: block !important;
+    overflow: visible !important;
   }
 
   .print-preview {
     padding: 0;
     margin: 0;
-    overflow: visible;
+    height: auto !important;
+    display: block !important;
+    overflow: visible !important;
   }
 
   .receipt {
     width: 100%;
     box-shadow: none;
     border: none;
-  }
-
-  body {
     margin: 0;
     padding: 0;
+    page-break-inside: avoid;
   }
 }
 
