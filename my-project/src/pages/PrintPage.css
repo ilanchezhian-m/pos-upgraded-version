@@ -390,7 +390,7 @@
 }
 
 .items-header.billing {
-  grid-template-columns: 0.4fr 2fr 0.5fr 0.8fr 0.7fr;
+  grid-template-columns: 0.3fr 2.5fr 0.5fr 0.8fr 0.8fr;
 }
 
 .items-header .col-item,
@@ -417,19 +417,19 @@
 }
 
 .item-row.billing {
-  grid-template-columns: 0.1fr 4fr 0.5fr 0.8fr 0.8fr;
+  grid-template-columns: 0.3fr 2.5fr 0.5fr 0.8fr 0.8fr;
 }
 
 .col-sno {
-  text-align: center;
+  text-align: left;
   font-weight: 700;
   font-size: 12px;
 }
 
 .sno {
   display: inline-block;
-  width: 20px;
-  text-align: center;
+  width: 100%;
+  text-align: left;
   font-weight: 700;
 }
 
@@ -446,7 +446,7 @@
 }
 
 .col-qty {
-  text-align: center;
+  text-align: right;
   font-weight: 700;
   font-size: 12px;
 }
