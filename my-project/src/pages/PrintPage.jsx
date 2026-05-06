@@ -262,7 +262,9 @@ function BillingReceipt({ bill }) {
         <div className="receipt-row" style={{ justifyContent: 'center', textAlign: 'center', lineHeight: '0.7' }}>
             <span className="label">Tamil Nadu 636004</span>
           </div>
-        
+          <div className="receipt-row" style={{ justifyContent: 'center', textAlign: 'center', lineHeight: '0.7' }}>
+            <span className="label">GST Name : GIRI FOODS</span>           
+          </div>
            <div className="receipt-row" style={{ justifyContent: 'center', textAlign: 'center', lineHeight: '0.7' }}>
             <span className="label">GST No : 33BZGPG7879D1Z7</span>           
           </div>
@@ -280,7 +282,7 @@ function BillingReceipt({ bill }) {
               
       <div className="receipt-section">
         <div className="receipt-row" style={{ lineHeight: '0.5' }}>
-          <span className="label-two">Name:0000000000--`$(M:</span>
+          <span className="label-two">Name:Praveen--`$(M:</span>
         </div>
         <div className="receipt-row" style={{ lineHeight: '0.5'}}>
           <span className="label-two">0000000000</span>

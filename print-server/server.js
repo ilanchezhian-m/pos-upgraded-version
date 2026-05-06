@@ -33,28 +33,28 @@ async function printKOT(order) {
     kitchenPrinter.println('KITCHEN ORDER TICKET');
     kitchenPrinter.bold(false);
     kitchenPrinter.drawLine();
-    
+
     kitchenPrinter.alignLeft();
     kitchenPrinter.println(`Order No: ${order.orderNumber || 'N/A'}`);
     kitchenPrinter.println(`Table: ${order.table}`);
     if (order.customer) kitchenPrinter.println(`Customer: ${order.customer}`);
     kitchenPrinter.println(`Time: ${new Date().toLocaleString()}`);
     kitchenPrinter.drawLine();
-    
+
     kitchenPrinter.bold(true);
     kitchenPrinter.println('Items:');
     kitchenPrinter.bold(false);
-    
+
     order.items.forEach(item => {
       kitchenPrinter.println(`${item.name}`);
       kitchenPrinter.println(`  Qty: ${item.qty}`);
     });
-    
+
     kitchenPrinter.drawLine();
     kitchenPrinter.alignCenter();
     kitchenPrinter.println('** PREPARE IMMEDIATELY **');
     kitchenPrinter.cut();
-    
+
     await kitchenPrinter.execute();
     console.log('KOT printed successfully');
     return { success: true };
@@ -74,14 +74,14 @@ async function printBill(bill) {
     counterPrinter.bold(false);
     counterPrinter.println('INVOICE / BILL');
     counterPrinter.drawLine();
-    
+
     counterPrinter.alignLeft();
     counterPrinter.println(`Order No: ${bill.orderNumber || 'N/A'}`);
     counterPrinter.println(`Customer: ${bill.customer}`);
     counterPrinter.println(`Table: ${bill.table}`);
     counterPrinter.println(`Date: ${new Date().toLocaleString()}`);
     counterPrinter.drawLine();
-    
+
     counterPrinter.bold(true);
     counterPrinter.tableCustom([
       { text: 'Item', align: 'LEFT', width: 0.5 },
@@ -91,7 +91,7 @@ async function printBill(bill) {
     ]);
     counterPrinter.bold(false);
     counterPrinter.drawLine();
-    
+
     bill.items.forEach(item => {
       counterPrinter.tableCustom([
         { text: item.name, align: 'LEFT', width: 0.5 },
@@ -100,7 +100,7 @@ async function printBill(bill) {
         { text: `₹${item.price * item.qty}`, align: 'RIGHT', width: 0.2 },
       ]);
     });
-    
+
     counterPrinter.drawLine();
     counterPrinter.bold(true);
     counterPrinter.tableCustom([
@@ -109,18 +109,19 @@ async function printBill(bill) {
     ]);
     counterPrinter.bold(false);
     counterPrinter.drawLine();
-    
+
     counterPrinter.println(`Payment Method: ${bill.paymentMethod || 'Cash'}`);
     counterPrinter.println(`Amount Paid: ₹${bill.total}`);
     counterPrinter.drawLine();
     counterPrinter.alignLeft();
     counterPrinter.println(`FSSAI No: 12421018001075`);
+    counterPrinter.println(`GST NAME: GIRI FOODS`);
     counterPrinter.println(`GST No: 33BZGPG7879D1Z7`);
     counterPrinter.drawLine();
     counterPrinter.alignCenter();
     counterPrinter.println('Thank you for visiting!');
     counterPrinter.cut();
-    
+
     await counterPrinter.execute();
     console.log('Bill printed successfully');
     return { success: true };
@@ -133,7 +134,7 @@ async function printBill(bill) {
 // REST API endpoint
 app.post('/print', async (req, res) => {
   const { type, data } = req.body;
-  
+
   try {
     let result;
     if (type === 'KOT') {
@@ -143,7 +144,7 @@ app.post('/print', async (req, res) => {
     } else {
       return res.status(400).json({ error: 'Invalid print type' });
     }
-    
+
     res.json(result);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -151,7 +152,7 @@ app.post('/print', async (req, res) => {
 });
 
 app.get('/status', (req, res) => {
-  res.json({ 
+  res.json({
     status: 'online',
     printers: {
       kitchen: 'connected',
@@ -170,18 +171,18 @@ const wss = new WebSocketServer({ server });
 
 wss.on('connection', (ws) => {
   console.log('Client connected');
-  
+
   ws.on('message', async (message) => {
     const data = JSON.parse(message);
-    
+
     if (data.type === 'PRINT') {
-      const result = data.printType === 'KOT' 
+      const result = data.printType === 'KOT'
         ? await printKOT(data.data)
         : await printBill(data.data);
       ws.send(JSON.stringify(result));
     }
   });
-  
+
   ws.on('close', () => console.log('Client disconnected'));
 });
 
