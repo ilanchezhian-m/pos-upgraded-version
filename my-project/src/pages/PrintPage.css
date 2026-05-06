@@ -390,9 +390,9 @@
 }
 
 .items-header.billing {
-  grid-template-columns: minmax(0, 0.25fr) minmax(0, 2fr) minmax(0, 0.45fr) minmax(0, 1.1fr) minmax(0, 1.2fr);
+  grid-template-columns: minmax(0, 0.35fr) minmax(0, 1.9fr) minmax(0, 0.45fr) minmax(0, 1.1fr) minmax(0, 1.2fr);
   padding: 5px 4px;
-  gap: 4px;
+  gap: 6px;
 }
 
 .items-header .col-item,
@@ -419,9 +419,9 @@
 }
 
 .item-row.billing {
-  grid-template-columns: minmax(0, 0.25fr) minmax(0, 2fr) minmax(0, 0.45fr) minmax(0, 1.1fr) minmax(0, 1.2fr);
+  grid-template-columns: minmax(0, 0.35fr) minmax(0, 1.9fr) minmax(0, 0.45fr) minmax(0, 1.1fr) minmax(0, 1.2fr);
   padding: 0px 4px;
-  gap: 4px;
+  gap: 6px;
 }
 
 .col-sno {
