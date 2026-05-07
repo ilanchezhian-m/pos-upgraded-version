@@ -205,7 +205,7 @@ function KOTReceipt({ order }) {
         )}
       </div>
 
-      <div className="divider"></div>
+      <div className="receipt-header"></div>
 
       <div className="receipt-section items-section">
         <div className="items-table">
@@ -228,7 +228,7 @@ function KOTReceipt({ order }) {
         </div>
       </div>
 
-      <div className="divider"></div>
+      <div className="receipt-header"></div>
 
       <div className="receipt-footer">
         <div className="footer-note">🔔 Please prepare immediately</div>
@@ -281,17 +281,17 @@ function BillingReceipt({ bill }) {
       {/* <div className="divider"></div> */}
 
       <div className="receipt-section">
-        <div className="receipt-row" style={{ lineHeight: '0.5' }}>
-          <span className="label-two">Name:Event Plus infotainment--`$</span>
+        <div className="receipt-row" style={{ lineHeight: '0.3' }}>
+          <span className="label-two">Name:<input type="text" defaultValue="(M:0000000000" style={{ border: 'none', background: 'transparent', width: '120px', fontFamily: 'inherit', fontSize: 'inherit', fontWeight: 'inherit', color: 'inherit', outline: 'none', marginLeft: '5px' }} /></span>
         </div>
-        <div className="receipt-row" style={{ lineHeight: '0.5' }}>
-          <span className="label-two">9791630071</span>
+        <div className="receipt-row" style={{ lineHeight: '0.3' }}>
+          <span className="label-two">Mob:<input type="text" defaultValue="0000000000" style={{ border: 'none', background: 'transparent', width: '120px', fontFamily: 'inherit', fontSize: 'inherit', fontWeight: 'inherit', color: 'inherit', outline: 'none', marginLeft: '5px' }} /></span>
         </div>
-        <div className="receipt-row" style={{ lineHeight: '0.5' }}>
-          <span className="label-two">Adr:0000000</span>
+        <div className="receipt-row" style={{ lineHeight: '0.' }}>
+          <span className="label-two">Adr:<input type="text" defaultValue="0000000000" style={{ border: 'none', background: 'transparent', width: '120px', fontFamily: 'inherit', fontSize: 'inherit', fontWeight: 'inherit', color: 'inherit', outline: 'none', marginLeft: '5px' }} /></span>
         </div>
       </div>
-      <div className="divider"></div>
+      <div className="receipt-header"></div>
 
 
       <div className="receipt-section">
@@ -313,7 +313,7 @@ function BillingReceipt({ bill }) {
           <span className="label">Token No: {tokenNumber}</span>
         </div>
       </div>
-      <div className='divider'></div>
+      <div className='receipt-header'></div>
       <div className="receipt-section items-section">
         <div className="items-table">
           <div className="items-header billing">
@@ -323,7 +323,7 @@ function BillingReceipt({ bill }) {
             <div className="col-price">Price</div>
             <div className="col-total">Amount</div>
           </div>
-          <div className='divider'></div>
+          <div className='receipt-header'></div>
           <div className="items-body">
             {bill.items?.map((item, idx) => (
               <div key={idx} className="item-row billing">
