@@ -126,7 +126,7 @@ export const items = [
   { id: 125, name: "Bbq Fish", price: 300, category: "STARTERS SEA FOOD" },
   { id: 126, name: "Golden Fry Prawn", price: 300, category: "STARTERS SEA FOOD" },
   { id: 127, name: "Crab Lollipop", price: 250, category: "STARTERS SEA FOOD" },
-  { id: 128, name: "Glass Para Fish", price: 5 50, category: "STARTERS SEA FOOD" },
+  { id: 128, name: "Glass Para Fish", price: 550, category: "STARTERS SEA FOOD" },
   { id: 129, name: "Prawn Manchurian", price: 270, category: "STARTERS SEA FOOD" },
   { id: 130, name: "Squid  65", price: 270, category: "STARTERS SEA FOOD" },
   { id: 131, name: "Prawn Pepper Fry", price: 270, category: "STARTERS SEA FOOD" },

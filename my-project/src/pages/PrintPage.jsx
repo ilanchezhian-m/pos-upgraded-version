@@ -242,7 +242,7 @@ function BillingReceipt({ bill }) {
   if (!bill) return <div>Bill not found</div>
 
   const [tokenNumber] = useState(() => Math.floor(Math.random() * 51) + 50)
-  const subtotal = bill.items?.reduce((sum, item) => sum + (item.price / 1.05) * item.qty, 0) || bill.total
+  const subtotal = bill.items?.reduce((sum, item) => sum + item.price * item.qty, 0) || bill.total
   const cgst = subtotal * 0.025
   const sgst = subtotal * 0.025
   const total = subtotal + cgst + sgst
@@ -334,8 +334,8 @@ function BillingReceipt({ bill }) {
                   <span className="item-name">{item.name}</span>
                 </div>
                 <div className="col-qty">{item.qty}</div>
-                <div className="col-price">₹{(item.price / 1.05).toFixed(2)}</div>
-                <div className="col-total">₹{((item.price / 1.05) * item.qty).toFixed(2)}</div>
+                <div className="col-price">₹{item.price.toFixed(2)}</div>
+                <div className="col-total">₹{(item.price * item.qty).toFixed(2)}</div>
               </div>
             ))}
           </div>
@@ -345,27 +345,24 @@ function BillingReceipt({ bill }) {
 
       <div className="receipt-totals">
         <div className="total-row" style={{ justifyContent: 'flex-end', lineHeight: '0.5' }}>
-          <span className="total-label">Total Qty: {bill.items?.reduce((sum, item) => sum + item.qty, 0) || 0}</span>
+          <span className="total-label">Total Qty: <input type="text" defaultValue={bill.items?.reduce((sum, item) => sum + item.qty, 0) || 0} style={{ border: 'none', background: 'transparent', width: '20px', fontFamily: 'inherit', fontSize: 'inherit', fontWeight: 'inherit', color: 'inherit', outline: 'none' }} /></span>
 
-          <span className="total-label" style={{ paddingLeft: '5px' }}>Sub: ₹{subtotal.toFixed(2)}</span>
+          <span className="total-label" style={{ paddingLeft: '5px' }}>Sub: ₹<input type="text" defaultValue={subtotal.toFixed(2)} style={{ border: 'none', background: 'transparent', width: '60px', fontFamily: 'inherit', fontSize: 'inherit', fontWeight: 'inherit', color: 'inherit', outline: 'none', textAlign: 'left' }} /></span>
+        </div>
+
+        <div className="total-row" style={{ justifyContent: 'flex-end', lineHeight: '0.1' }}>
+          <span className="total-label" style={{ paddingRight: '70px' }}><input type="text" defaultValue="Total" style={{ border: 'none', background: 'transparent', width: '50px', fontFamily: 'inherit', fontSize: 'inherit', fontWeight: 'inherit', color: 'inherit', outline: 'none', textAlign: 'right' }} /></span>
         </div>
 
         <div className="total-row" style={{ justifyContent: 'flex-end', lineHeight: '0.5' }}>
-          <span className="total-label" style={{ paddingRight: '50px' }}>Total</span>
-
-        </div>
-
-        <div className="total-row" style={{ justifyContent: 'flex-end', lineHeight: '0.5' }}>
-          <span className="total-label">CGST @ 2.5%: ₹{cgst.toFixed(2)}</span>
-
+          <span className="total-label">CGST @ 2.5%: ₹<input type="text" defaultValue={cgst.toFixed(2)} style={{ border: 'none', background: 'transparent', width: '50px', fontFamily: 'inherit', fontSize: 'inherit', fontWeight: 'inherit', color: 'inherit', outline: 'none', textAlign: 'left' }} /></span>
         </div>
         <div className="total-row" style={{ justifyContent: 'flex-end', lineHeight: '0.5' }}>
-          <span className="total-label">SGST @ 2.5%: ₹{sgst.toFixed(2)}</span>
+          <span className="total-label">SGST @ 2.5%: ₹<input type="text" defaultValue={sgst.toFixed(2)} style={{ border: 'none', background: 'transparent', width: '50px', fontFamily: 'inherit', fontSize: 'inherit', fontWeight: 'inherit', color: 'inherit', outline: 'none', textAlign: 'left' }} /></span>
         </div>
 
         <div className="total-row total-final" style={{ justifyContent: 'flex-end', lineHeight: '0.5' }}>
-
-          <span className="total-label-bold">Grand Total: ₹{total.toFixed(2)}</span>
+          <span className="total-label-bold">Grand Total: ₹<input type="text" defaultValue={total.toFixed(2)} style={{ border: 'none', background: 'transparent', width: '70px', fontFamily: 'inherit', fontSize: 'inherit', fontWeight: 'inherit', color: 'inherit', outline: 'none', textAlign: 'left' }} /></span>
         </div>
       </div>
 

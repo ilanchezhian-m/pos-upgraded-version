@@ -489,8 +489,6 @@
 .total-row {
   display: flex;
   justify-content: space-between;
-  
-  margin-bottom: 7px;
   font-size: 12px;
 }
 
