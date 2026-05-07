@@ -282,10 +282,10 @@ function BillingReceipt({ bill }) {
 
       <div className="receipt-section">
         <div className="receipt-row" style={{ lineHeight: '0.5' }}>
-          <span className="label-two">Name:Event Plus infotainment--`$(M:</span>
+          <span className="label-two">Name:Event Plus infotainment--`$</span>
         </div>
         <div className="receipt-row" style={{ lineHeight: '0.5' }}>
-          <span className="label-two">0000000000</span>
+          <span className="label-two">9791630071</span>
         </div>
         <div className="receipt-row" style={{ lineHeight: '0.5' }}>
           <span className="label-two">Adr:0000000</span>
