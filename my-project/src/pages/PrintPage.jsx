@@ -297,11 +297,11 @@ function BillingReceipt({ bill }) {
       <div className="receipt-section">
         <div className="receipt-row" style={{ lineHeight: '0.5' }}>
           <span className="label-two">Date : {new Date(bill.createdAt).toLocaleDateString('en-GB')}</span>
-          <span className="label">Dine In : {bill.table}</span>
+          <span className="label">Dine In:<input type="text" defaultValue={bill.table} style={{ border: 'none', background: 'transparent', width: '50px', fontFamily: 'inherit', fontSize: 'inherit', fontWeight: 'inherit', color: 'inherit', outline: 'none', marginLeft: '5px', textAlign: 'right' }} /></span>
         </div>
 
-        <div className="receipt-row" style={{ lineHeight: '0.5', }}>
-          <span className="label-two">{new Date(bill.createdAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false })}</span>
+        <div className="receipt-row" style={{ lineHeight: '0.1', }}>
+          <span className="label-two"><input type="text" defaultValue={new Date(bill.createdAt).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false })} style={{ border: 'none', background: 'transparent', width: '80px', fontFamily: 'inherit', fontSize: 'inherit', fontWeight: 'inherit', color: 'inherit', outline: 'none' }} /></span>
         </div>
 
         <div className="receipt-row">
