@@ -11,7 +11,7 @@ export const items = [
   { id: 10, name: "Nattu Kozhi Biriyanii", price: 350, category: "Biriyanis" },
   { id: 11, name: "Chicken 65 Biryani", price: 300, category: "Biriyanis" },
   { id: 12, name: "Chicken Tandoori Biryani", price: 250, category: "Biriyanis" },
-  { id: 13, name: "Chicken Biriyani", price: 250, category: "Biriyanis" },
+  { id: 13, name: "Chicken Biriyani", price: 210, category: "Biriyanis" },
   { id: 14, name: "Chicken Bucket Biriyani ( 5 No's)", price: 1100, category: "BUCKET BIRIYANIS" },
   { id: 15, name: "Mutton Bucket Biriyani (3 Nos)", price: 870, category: "BUCKET BIRIYANIS" },
   { id: 16, name: "Mutton Bucket Biriyani (5 No's)", price: 1440, category: "BUCKET BIRIYANIS" },

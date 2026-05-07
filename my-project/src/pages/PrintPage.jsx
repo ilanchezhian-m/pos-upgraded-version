@@ -194,7 +194,7 @@ function KOTReceipt({ order }) {
           <span className="value table-emphasis">{order.orderNumber || order.id.slice(0, 8)}</span>
         </div>
         <div className="receipt-row">
-            <span className="label">Table / Parcel:</span>
+          <span className="label">Table / Parcel:</span>
           <span className="value table-emphasis">{order.table}</span>
         </div>
         {order.customer && order.customer !== 'Walk-in' && (
@@ -253,47 +253,47 @@ function BillingReceipt({ bill }) {
         <img src={billLogo} alt="Logo" style={{ width: '200px', marginBottom: '-10px' }} />
         <h2 className="receipt-title">TOPI VAPPA BIRIYANI - SALEM</h2>
 
-        <div className="receipt-row" style={{ justifyContent: 'center', textAlign: 'center', lineHeight: '0.7'}}>
-            <span className="label">261A, Advaitha Ashram Rd,</span>
-          </div>
         <div className="receipt-row" style={{ justifyContent: 'center', textAlign: 'center', lineHeight: '0.7' }}>
-            <span className="label">Fairlands, Salem,</span>
-          </div>
+          <span className="label">261A, Advaitha Ashram Rd,</span>
+        </div>
         <div className="receipt-row" style={{ justifyContent: 'center', textAlign: 'center', lineHeight: '0.7' }}>
-            <span className="label">Tamil Nadu 636004</span>
-          </div>
-          <div className="receipt-row" style={{ justifyContent: 'center', textAlign: 'center', lineHeight: '0.7' }}>
-            <span className="label">GST Name : GIRI FOODS</span>           
-          </div>
-           <div className="receipt-row" style={{ justifyContent: 'center', textAlign: 'center', lineHeight: '0.7' }}>
-            <span className="label">GST No : 33BZGPG7879D1Z7</span>           
-          </div>
-          <div className="receipt-row" style={{ justifyContent: 'center', textAlign: 'center', lineHeight: '0.7' }}>
-            <span className="label">FSSAI No : 12421018001075</span>
-          </div>
-       
+          <span className="label">Fairlands, Salem,</span>
+        </div>
+        <div className="receipt-row" style={{ justifyContent: 'center', textAlign: 'center', lineHeight: '0.7' }}>
+          <span className="label">Tamil Nadu 636004</span>
+        </div>
+        <div className="receipt-row" style={{ justifyContent: 'center', textAlign: 'center', lineHeight: '0.7' }}>
+          <span className="label">GST Name : GIRI FOODS</span>
+        </div>
+        <div className="receipt-row" style={{ justifyContent: 'center', textAlign: 'center', lineHeight: '0.7' }}>
+          <span className="label">GST No : 33BZGPG7879D1Z7</span>
+        </div>
+        <div className="receipt-row" style={{ justifyContent: 'center', textAlign: 'center', lineHeight: '0.7' }}>
+          <span className="label">FSSAI No : 12421018001075</span>
+        </div>
 
-          <div className="receipt-row" style={{ justifyContent: 'center', textAlign: 'center', lineHeight: '0.7' }}>
-            <span className="label">Phone : 7305748889</span>
-          </div>
+
+        <div className="receipt-row" style={{ justifyContent: 'center', textAlign: 'center', lineHeight: '0.7' }}>
+          <span className="label">Phone : 7305748889</span>
+        </div>
       </div>
-      
-               {/* <div className="divider"></div> */}
-              
+
+      {/* <div className="divider"></div> */}
+
       <div className="receipt-section">
         <div className="receipt-row" style={{ lineHeight: '0.5' }}>
-          <span className="label-two">Name:Praveen--`$(M:</span>
+          <span className="label-two">Name:Event Plus infotainment--`$(M:</span>
         </div>
-        <div className="receipt-row" style={{ lineHeight: '0.5'}}>
+        <div className="receipt-row" style={{ lineHeight: '0.5' }}>
           <span className="label-two">0000000000</span>
         </div>
-        <div className="receipt-row" style={{ lineHeight: '0.5'}}>
+        <div className="receipt-row" style={{ lineHeight: '0.5' }}>
           <span className="label-two">Adr:0000000</span>
         </div>
       </div>
-              <div className="divider"></div>
-              
-    
+      <div className="divider"></div>
+
+
       <div className="receipt-section">
         <div className="receipt-row" style={{ lineHeight: '0.5' }}>
           <span className="label-two">Date : {new Date(bill.createdAt).toLocaleDateString('en-GB')}</span>
@@ -313,7 +313,7 @@ function BillingReceipt({ bill }) {
           <span className="label">Token No: {tokenNumber}</span>
         </div>
       </div>
-            <div className='divider'></div>
+      <div className='divider'></div>
       <div className="receipt-section items-section">
         <div className="items-table">
           <div className="items-header billing">
@@ -334,7 +334,7 @@ function BillingReceipt({ bill }) {
                   <span className="item-name">{item.name}</span>
                 </div>
                 <div className="col-qty">{item.qty}</div>
-           <div className="col-price">₹{(item.price / 1.05).toFixed(2)}</div>
+                <div className="col-price">₹{(item.price / 1.05).toFixed(2)}</div>
                 <div className="col-total">₹{((item.price / 1.05) * item.qty).toFixed(2)}</div>
               </div>
             ))}
@@ -346,15 +346,15 @@ function BillingReceipt({ bill }) {
       <div className="receipt-totals">
         <div className="total-row" style={{ justifyContent: 'flex-end', lineHeight: '0.5' }}>
           <span className="total-label">Total Qty: {bill.items?.reduce((sum, item) => sum + item.qty, 0) || 0}</span>
-          
-           <span className="total-label" style={{ paddingLeft: '5px' }}>Sub: ₹{subtotal.toFixed(2)}</span>
+
+          <span className="total-label" style={{ paddingLeft: '5px' }}>Sub: ₹{subtotal.toFixed(2)}</span>
         </div>
 
-                <div className="total-row" style={{ justifyContent: 'flex-end', lineHeight: '0.5' }}>
-          <span className="total-label"   style={{ paddingRight: '50px' }}>Total</span>
+        <div className="total-row" style={{ justifyContent: 'flex-end', lineHeight: '0.5' }}>
+          <span className="total-label" style={{ paddingRight: '50px' }}>Total</span>
 
         </div>
-        
+
         <div className="total-row" style={{ justifyContent: 'flex-end', lineHeight: '0.5' }}>
           <span className="total-label">CGST @ 2.5%: ₹{cgst.toFixed(2)}</span>
 
@@ -362,20 +362,20 @@ function BillingReceipt({ bill }) {
         <div className="total-row" style={{ justifyContent: 'flex-end', lineHeight: '0.5' }}>
           <span className="total-label">SGST @ 2.5%: ₹{sgst.toFixed(2)}</span>
         </div>
-        
+
         <div className="total-row total-final" style={{ justifyContent: 'flex-end', lineHeight: '0.5' }}>
-             
+
           <span className="total-label-bold">Grand Total: ₹{total.toFixed(2)}</span>
         </div>
       </div>
 
       <div className="receipt-footer" style={{ marginBottom: '0' }}>
-       <span className="label-two">FSSAI Lic No : 12421018001075</span>
+        <span className="label-two">FSSAI Lic No : 12421018001075</span>
         {/* <div className="footer-reference">Invoice: {bill.id.slice(0, 8)}</div> */}
-          <div className="receipt-row" style={{ justifyContent: 'center', textAlign: 'center', lineHeight: '0.7' }}>
-            
-             <div className="footer-note">THANKS FOR VISTING US!</div>
-          </div>
+        <div className="receipt-row" style={{ justifyContent: 'center', textAlign: 'center', lineHeight: '0.7' }}>
+
+          <div className="footer-note">THANKS FOR VISTING US!</div>
+        </div>
       </div>
     </div>
   )
