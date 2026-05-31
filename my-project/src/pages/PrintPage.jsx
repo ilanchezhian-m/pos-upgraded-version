@@ -253,7 +253,8 @@ function BillingReceipt({ bill }) {
   const [manualGrandTotal, setManualGrandTotal] = useState('')
   const [manualTotalQty, setManualTotalQty] = useState('')
 
-  // Sync state with selected bill prop
+  // Sync state with selected bill prop (only when bill ID changes, preserving active edits)
+  const billId = bill?.id
   useEffect(() => {
     if (bill && bill.items) {
       setItems(
@@ -272,7 +273,7 @@ function BillingReceipt({ bill }) {
     setManualSgst('')
     setManualGrandTotal('')
     setManualTotalQty('')
-  }, [bill])
+  }, [billId])
 
   // Handle updates to item rows
   const handleItemChange = (idx, field, value) => {
