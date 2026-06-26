@@ -1,4 +1,4 @@
-const CACHE_NAME = 'petpooja-pos-cache-v1';
+const CACHE_NAME = 'petpooja-pos-cache-v2';
 const OFFLINE_URLS = [
   '/',
   '/index.html',

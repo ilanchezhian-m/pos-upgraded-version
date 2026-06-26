@@ -1,4 +1,4 @@
-const CACHE_NAME = 'captain-app-v1'
+const CACHE_NAME = 'captain-app-v2'
 const URLS_TO_CACHE = ['/', '/index.html', '/manifest.webmanifest']
 
 self.addEventListener('install', (event) => {
