@@ -5,7 +5,7 @@ export const items = [
   { id: 4, name: "Grill Biriyani", price: 250, category: "Biriyanis" },
   { id: 5, name: "Egg Biriyani", price: 160, category: "Biriyanis" },
   { id: 6, name: "Chicken Kushka (plain Biriyani)", price: 150, category: "Biriyanis" },
-  { id: 7, name: "Chicken Lollipop Biryani [4 Pieces]", price: 340, category: "Biriyanis" },
+  { id: 7, name: "Chicken Lollipop Biryani [4 Pieces]", price: 300, category: "Biriyanis" },
   { id: 8, name: "Mutton Kuska", price: 160, category: "Biriyanis" },
   { id: 9, name: "Mutton Kushka", price: 160, category: "Biriyanis" },
   { id: 10, name: "Nattu Kozhi Biriyanii", price: 270, category: "Biriyanis" },
