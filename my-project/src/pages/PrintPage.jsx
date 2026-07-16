@@ -155,9 +155,9 @@ function PrintPage() {
 
               <div className="print-preview">
                 {selectedPrintJob.type === 'KOT' ? (
-                  <KOTReceipt order={getOrderDetails(selectedPrintJob.refId)} />
+                  <KOTReceipt key={selectedPrintJob.id} order={getOrderDetails(selectedPrintJob.refId)} />
                 ) : (
-                  <BillingReceipt bill={getBillDetails(selectedPrintJob.refId)} />
+                  <BillingReceipt key={selectedPrintJob.id} bill={getBillDetails(selectedPrintJob.refId)} />
                 )}
               </div>
             </>
@@ -242,10 +242,10 @@ function BillingReceipt({ bill }) {
   if (!bill) return <div>Bill not found</div>
 
   const [tokenNumber] = useState(() => Math.floor(Math.random() * 51) + 50)
-  
+
   // Local state for items to enable interactive editing
   const [items, setItems] = useState([])
-  
+
   // Local state for manual overrides of totals
   const [manualSubtotal, setManualSubtotal] = useState('')
   const [manualCgst, setManualCgst] = useState('')
@@ -366,7 +366,7 @@ function BillingReceipt({ bill }) {
 
       <div className="receipt-section">
         <div className="receipt-row" style={{ lineHeight: '0.5' }}>
-          <span className="label-two">Date : {new Date(bill.createdAt).toLocaleDateString('en-GB')}</span>
+          <span className="label-two">Date : <input type="text" defaultValue={new Date(bill.createdAt).toLocaleDateString('en-GB')} style={{ border: 'none', background: 'transparent', width: '85px', fontFamily: 'inherit', fontSize: 'inherit', fontWeight: 'inherit', color: 'inherit', outline: 'none', marginLeft: '5px' }} /></span>
           <span className="label">Dine In:<input type="text" defaultValue={bill.table} style={{ border: 'none', background: 'transparent', width: '50px', fontFamily: 'inherit', fontSize: 'inherit', fontWeight: 'inherit', color: 'inherit', outline: 'none', marginLeft: '5px', textAlign: 'right' }} /></span>
         </div>
 

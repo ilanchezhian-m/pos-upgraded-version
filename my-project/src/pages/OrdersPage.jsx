@@ -22,11 +22,20 @@ function OrdersPage() {
       ? order.items
       : [{ name: order.item, qty: order.qty, price: order.price }]
     const orderNumber = order.orderNumber || order.id?.slice(0, 6) || 'N/A'
+    
+    const subtotal = order.total
+    const cgst = subtotal * 0.025
+    const sgst = subtotal * 0.025
+    const grandTotal = subtotal + cgst + sgst
+
     const bill = {
       orderId: order.id,
       customer: order.customer,
       table: order.table,
-      total: order.total,
+      subtotal: subtotal,
+      cgst: cgst,
+      sgst: sgst,
+      total: Number(grandTotal.toFixed(2)),
       items: billItems,
       status: 'ready',
       paymentMethod: order.payment,
