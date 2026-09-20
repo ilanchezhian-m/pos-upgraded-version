@@ -422,6 +422,7 @@
   grid-template-columns: minmax(0, 0.35fr) minmax(0, 1.9fr) minmax(0, 0.45fr) minmax(0, 1.1fr) minmax(0, 1.2fr);
   padding: 0px 4px;
   gap: 6px;
+  align-items: start;
 }
 
 .col-sno {
@@ -439,14 +440,20 @@
 
 .col-item {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   font-size: 12px;
+  word-break: break-word;
+  white-space: normal;
+  overflow-wrap: break-word;
 }
 
 .item-name {
   font-weight: 700;
   color: #000;
   text-transform: none;
+  word-break: break-word;
+  white-space: normal;
+  overflow-wrap: break-word;
 }
 
 .col-qty {

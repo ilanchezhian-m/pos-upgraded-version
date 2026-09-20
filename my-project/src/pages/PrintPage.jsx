@@ -401,8 +401,8 @@ function BillingReceipt({ bill }) {
                   <span className="sno">{idx + 1}</span>
                 </div>
                 <div className="col-item">
-                  <input
-                    type="text"
+                  <textarea
+                    rows={Math.max(1, Math.ceil((item.name || '').length / 16))}
                     value={item.name}
                     onChange={(e) => handleItemChange(idx, 'name', e.target.value)}
                     style={{
@@ -416,6 +416,11 @@ function BillingReceipt({ bill }) {
                       outline: 'none',
                       padding: 0,
                       margin: 0,
+                      resize: 'none',
+                      overflow: 'hidden',
+                      whiteSpace: 'pre-wrap',
+                      wordBreak: 'break-word',
+                      lineHeight: '1.2',
                     }}
                   />
                 </div>
