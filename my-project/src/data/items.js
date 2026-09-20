@@ -1,4 +1,8 @@
 export const items = [
+  { id: 345, name: "Chicken Biriyani + 2 Pc Lollipop + Coca Cola", price: 249, category: "OFFER" },
+  { id: 346, name: "Grill Or Tandoori Full", price: 349, category: "OFFER" },
+  { id: 347, name: "Chicken Rice Or Noodles", price: 149, category: "OFFER" },
+  { id: 348, name: "2 Butter Naan + Butter Chicken Masala Or Chicken Pepper Masala", price: 299, category: "OFFER" },
   { id: 1, name: "Mutton Biriyani", price: 280, category: "Biriyanis" },
   { id: 2, name: "Chicken Tikka Biriyani", price: 250, category: "Biriyanis" },
   { id: 3, name: "Bbq Biriyani", price: 250, category: "Biriyanis" },

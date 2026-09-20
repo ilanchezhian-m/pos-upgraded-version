@@ -462,6 +462,12 @@
   color: #b91c1c;
 }
 
+.pill-btn.offer {
+  background: #fef3c7;
+  border-color: #fde68a;
+  color: #92400e;
+}
+
 .cycle-view-page {
   width: 100%;
   display: flex;

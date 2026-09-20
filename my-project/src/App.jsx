@@ -68,6 +68,7 @@ function App() {
   const categories = useMemo(() => ['All', ...new Set(items.map((i) => i.category || 'Other'))], [])
   const categoryTone = useCallback((cat) => {
     const name = (cat || '').toUpperCase()
+    if (name.includes('OFFER')) return 'offer'
     if (name.includes('VEG')) return 'veg'
     if (
       name.includes('NON VEG') ||
