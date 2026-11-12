@@ -92,26 +92,54 @@ async function printBill(bill) {
     counterPrinter.bold(false);
     counterPrinter.drawLine();
 
+    const subtotal = bill.subtotal !== undefined
+      ? bill.subtotal
+      : bill.items.reduce((sum, item) => sum + (parseFloat(item.price) || 0) * (parseFloat(item.qty) || 0), 0);
+
+    const cgst = bill.cgst !== undefined
+      ? bill.cgst
+      : subtotal * 0.025;
+
+    const sgst = bill.sgst !== undefined
+      ? bill.sgst
+      : subtotal * 0.025;
+
+    const total = bill.total !== undefined
+      ? bill.total
+      : subtotal + cgst + sgst;
+
     bill.items.forEach(item => {
       counterPrinter.tableCustom([
         { text: item.name, align: 'LEFT', width: 0.5 },
         { text: item.qty.toString(), align: 'CENTER', width: 0.15 },
         { text: `₹${item.price}`, align: 'RIGHT', width: 0.15 },
-        { text: `₹${item.price * item.qty}`, align: 'RIGHT', width: 0.2 },
+        { text: `₹${(item.price * item.qty).toFixed(2)}`, align: 'RIGHT', width: 0.2 },
       ]);
     });
 
     counterPrinter.drawLine();
+    counterPrinter.tableCustom([
+      { text: 'SUBTOTAL:', align: 'LEFT', width: 0.7 },
+      { text: `₹${subtotal.toFixed(2)}`, align: 'RIGHT', width: 0.3 },
+    ]);
+    counterPrinter.tableCustom([
+      { text: 'CGST @ 2.5%:', align: 'LEFT', width: 0.7 },
+      { text: `₹${cgst.toFixed(2)}`, align: 'RIGHT', width: 0.3 },
+    ]);
+    counterPrinter.tableCustom([
+      { text: 'SGST @ 2.5%:', align: 'LEFT', width: 0.7 },
+      { text: `₹${sgst.toFixed(2)}`, align: 'RIGHT', width: 0.3 },
+    ]);
     counterPrinter.bold(true);
     counterPrinter.tableCustom([
-      { text: 'TOTAL AMOUNT:', align: 'LEFT', width: 0.7 },
-      { text: `₹${bill.total}`, align: 'RIGHT', width: 0.3 },
+      { text: 'GRAND TOTAL:', align: 'LEFT', width: 0.7 },
+      { text: `₹${total.toFixed(2)}`, align: 'RIGHT', width: 0.3 },
     ]);
     counterPrinter.bold(false);
     counterPrinter.drawLine();
 
     counterPrinter.println(`Payment Method: ${bill.paymentMethod || 'Cash'}`);
-    counterPrinter.println(`Amount Paid: ₹${bill.total}`);
+    counterPrinter.println(`Amount Paid: ₹${total.toFixed(2)}`);
     counterPrinter.drawLine();
     counterPrinter.alignLeft();
     counterPrinter.println(`FSSAI No: 12421018001075`);
