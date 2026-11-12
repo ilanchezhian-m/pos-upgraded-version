@@ -3,15 +3,48 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.jsx'
 
+// Catch Vite dynamic import / asset hash mismatch errors and auto-reload once
+window.addEventListener('vite:preloadError', (event) => {
+  console.warn('Vite preload error detected, reloading page for new version...', event)
+  window.location.reload()
+})
+
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <App />
   </StrictMode>,
 )
 
-// Register service worker for offline (production only)
-if (import.meta.env.PROD && 'serviceWorker' in navigator) {
+// PWA Service Worker with auto-update
+if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('/service-worker.js')
+    navigator.serviceWorker
+      .register('/service-worker.js')
+      .then((reg) => {
+        // Check for updates on every page load
+        reg.update().catch(() => {})
+
+        reg.addEventListener('updatefound', () => {
+          const newWorker = reg.installing
+          if (newWorker) {
+            newWorker.addEventListener('statechange', () => {
+              if (newWorker.state === 'activated' && navigator.serviceWorker.controller) {
+                console.log('New version activated, reloading...')
+                window.location.reload()
+              }
+            })
+          }
+        })
+      })
+      .catch((err) => console.error('SW registration failed', err))
+
+    // Reload when controller changes
+    let refreshing = false
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!refreshing) {
+        refreshing = true
+        window.location.reload()
+      }
+    })
   })
 }

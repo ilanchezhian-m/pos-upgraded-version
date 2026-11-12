@@ -14,6 +14,17 @@ function hasIndexedDB() {
   return typeof indexedDB !== 'undefined';
 }
 
+function generateUUID() {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+    const r = (Math.random() * 16) | 0;
+    const v = c === 'x' ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
 function openDatabase() {
   return new Promise((resolve, reject) => {
     if (!hasIndexedDB()) {
@@ -50,7 +61,7 @@ async function withStore(storeName, mode, callback) {
 }
 
 export async function saveOrder(order) {
-  const record = { ...order, id: order.id || crypto.randomUUID(), synced: false, createdAt: order.createdAt || new Date().toISOString() };
+  const record = { ...order, id: order.id || generateUUID(), synced: false, createdAt: order.createdAt || new Date().toISOString() };
   return withStore('orders', 'readwrite', (store, isMemory) => {
     if (isMemory) {
       fallbackMemory.orders.push(record);
@@ -68,7 +79,7 @@ export async function saveBill(bill) {
   
   const record = { 
     ...bill, 
-    id: bill.id || crypto.randomUUID(), 
+    id: bill.id || generateUUID(), 
     synced: false, 
     createdAt,
     cycleDate: cycleInfo.cycleDate,
@@ -88,7 +99,7 @@ export async function saveBill(bill) {
 }
 
 export async function savePrintJob(printJob) {
-  const record = { ...printJob, id: printJob.id || crypto.randomUUID(), synced: false, createdAt: printJob.createdAt || new Date().toISOString() };
+  const record = { ...printJob, id: printJob.id || generateUUID(), synced: false, createdAt: printJob.createdAt || new Date().toISOString() };
   return withStore('prints', 'readwrite', (store, isMemory) => {
     if (isMemory) {
       fallbackMemory.prints.push(record);

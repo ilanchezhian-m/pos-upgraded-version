@@ -1,7 +1,32 @@
 {
-  "routes": [
-    { "handle": "filesystem" },
-    { "src": "/favicon.ico", "status": 308, "headers": { "Location": "/favicon.svg" } },
-    { "src": "/.*", "dest": "/index.html" }
+  "headers": [
+    {
+      "source": "/service-worker.js",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/(.*).html",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=0, must-revalidate" }
+      ]
+    },
+    {
+      "source": "/assets/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+      ]
+    }
+  ],
+  "rewrites": [
+    { "source": "/favicon.ico", "destination": "/favicon.svg" },
+    { "source": "/(.*)", "destination": "/index.html" }
   ]
 }
