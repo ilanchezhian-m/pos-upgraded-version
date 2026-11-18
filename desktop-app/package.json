@@ -1,0 +1,53 @@
+{
+  "name": "topivappa-pos-desktop",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Topi Vappa POS - Windows Desktop Edition with Silent Direct Printing",
+  "main": "electron/main.cjs",
+  "author": "Topi Vappa",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "start": "electron .",
+    "electron:dev": "concurrently -k \"vite\" \"wait-on http://localhost:5173 && electron .\"",
+    "pack": "npm run build && electron-builder --dir",
+    "dist": "npm run build && electron-builder --win"
+  },
+  "build": {
+    "appId": "com.topivappa.pos",
+    "productName": "Topi Vappa POS",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
+    }
+  },
+  "dependencies": {
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "react-router-dom": "^7.11.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^5.1.1",
+    "concurrently": "^9.1.2",
+    "electron": "^34.0.0",
+    "electron-builder": "^25.1.8",
+    "vite": "^7.2.4",
+    "wait-on": "^8.0.1"
+  }
+}

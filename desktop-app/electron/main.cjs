@@ -1,0 +1,278 @@
+const { app, BrowserWindow, ipcMain, Menu } = require('electron');
+const path = require('path');
+const fs = require('fs');
+
+let mainWindow = null;
+
+function createWindow() {
+  mainWindow = new BrowserWindow({
+    width: 1366,
+    height: 850,
+    minWidth: 1024,
+    minHeight: 700,
+    title: 'Topi Vappa POS - Desktop Edition',
+    icon: path.join(__dirname, '../public/favicon.svg'),
+    backgroundColor: '#0f172a',
+    autoHideMenuBar: false,
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.cjs'),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: false,
+      webSecurity: true,
+    },
+  });
+
+  // Check if running in dev mode
+  const devUrl = process.env.VITE_DEV_SERVER_URL;
+  if (devUrl) {
+    mainWindow.loadURL(devUrl);
+    // mainWindow.webContents.openDevTools();
+  } else {
+    // Production: load dist/index.html
+    const indexPath = path.join(__dirname, '../dist/index.html');
+    if (fs.existsSync(indexPath)) {
+      mainWindow.loadFile(indexPath);
+    } else {
+      // Fallback to dev server if dist not yet built
+      mainWindow.loadURL('http://localhost:5173');
+    }
+  }
+
+  // Hook window.print() to optionally execute silently
+  mainWindow.webContents.on('did-finish-load', () => {
+    mainWindow.setTitle('Topi Vappa POS - Desktop Edition');
+  });
+
+  mainWindow.on('closed', () => {
+    mainWindow = null;
+  });
+
+  setupMenu();
+}
+
+function setupMenu() {
+  const template = [
+    {
+      label: 'File',
+      submenu: [
+        {
+          label: 'Reload App',
+          accelerator: 'CmdOrCtrl+R',
+          click: () => mainWindow && mainWindow.reload(),
+        },
+        {
+          label: 'Toggle Developer Tools',
+          accelerator: 'F12',
+          click: () => mainWindow && mainWindow.webContents.toggleDevTools(),
+        },
+        { type: 'separator' },
+        {
+          label: 'Exit',
+          accelerator: 'Alt+F4',
+          click: () => app.quit(),
+        },
+      ],
+    },
+    {
+      label: 'Printers',
+      submenu: [
+        {
+          label: 'List Installed Printers',
+          click: async () => {
+            if (mainWindow) {
+              const printers = await mainWindow.webContents.getPrintersAsync();
+              const printerList = printers.map(p => `${p.name} (${p.isDefault ? 'Default' : 'Active'})`).join('\n');
+              const { dialog } = require('electron');
+              dialog.showMessageBox(mainWindow, {
+                type: 'info',
+                title: 'Installed Windows Printers',
+                message: `Found ${printers.length} printer(s):\n\n${printerList}`,
+              });
+            }
+          },
+        },
+      ],
+    },
+    {
+      label: 'Help',
+      submenu: [
+        {
+          label: 'About Topi Vappa POS',
+          click: () => {
+            const { dialog } = require('electron');
+            dialog.showMessageBox(mainWindow, {
+              type: 'info',
+              title: 'About',
+              message: 'Topi Vappa POS Desktop Edition v1.0.0\nSupports Silent Direct Thermal Printing for Windows.',
+            });
+          },
+        },
+      ],
+    },
+  ];
+
+  const menu = Menu.buildFromTemplate(template);
+  Menu.setApplicationMenu(menu);
+}
+
+// =========================================================
+// Silent Printing IPC Handlers
+// =========================================================
+
+// 1. Get all installed Windows printers
+ipcMain.handle('get-printers', async () => {
+  if (!mainWindow) return [];
+  try {
+    const printers = await mainWindow.webContents.getPrintersAsync();
+    return printers.map(p => ({
+      name: p.name,
+      displayName: p.displayName,
+      description: p.description,
+      isDefault: p.isDefault,
+      status: p.status,
+    }));
+  } catch (error) {
+    console.error('Failed to get printers:', error);
+    return [];
+  }
+});
+
+// 2. Direct Silent Print of Current Active Window
+ipcMain.handle('print-silent', async (event, options = {}) => {
+  if (!mainWindow) return { success: false, error: 'No active window' };
+
+  return new Promise((resolve) => {
+    const printOptions = {
+      silent: true,
+      printBackground: true,
+      deviceName: options.deviceName || '',
+      color: false,
+      margins: {
+        marginType: 'none',
+      },
+      ...options,
+    };
+
+    mainWindow.webContents.print(printOptions, (success, errorType) => {
+      if (!success) {
+        console.error('Print failed:', errorType);
+        resolve({ success: false, error: errorType });
+      } else {
+        console.log('Silent print completed successfully.');
+        resolve({ success: true });
+      }
+    });
+  });
+});
+
+// 3. Silent Print of Thermal Receipt HTML via Background Worker Window
+// This prints clean 80mm/58mm thermal receipts without disturbing the cashier screen!
+ipcMain.handle('print-receipt', async (event, { html, deviceName = '', widthMm = 80 }) => {
+  return new Promise((resolve) => {
+    let worker = new BrowserWindow({
+      show: false,
+      width: 380,
+      height: 700,
+      webPreferences: {
+        nodeIntegration: false,
+        contextIsolation: true,
+      },
+    });
+
+    const receiptHtml = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <style>
+          @page {
+            margin: 0;
+            size: ${widthMm}mm auto;
+          }
+          * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+          }
+          body {
+            font-family: 'Courier New', Courier, monospace, sans-serif;
+            font-size: 12px;
+            font-weight: 500;
+            line-height: 1.25;
+            width: ${widthMm === 58 ? '48mm' : '72mm'};
+            margin: 0 auto;
+            padding: 4px;
+            color: #000;
+            background: #fff;
+          }
+          .center { text-align: center; }
+          .right { text-align: right; }
+          .bold { font-weight: bold; }
+          .divider {
+            border-bottom: 1px dashed #000;
+            margin: 5px 0;
+          }
+          table { width: 100%; border-collapse: collapse; }
+          td, th { padding: 2px 0; font-size: 11px; }
+          img { max-width: 100%; height: auto; }
+        </style>
+      </head>
+      <body>
+        ${html}
+      </body>
+      </html>
+    `;
+
+    worker.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(receiptHtml)}`);
+
+    worker.webContents.on('did-finish-load', () => {
+      setTimeout(() => {
+        worker.webContents.print(
+          {
+            silent: true,
+            printBackground: true,
+            deviceName: deviceName || '',
+            margins: { marginType: 'none' },
+          },
+          (success, errorType) => {
+            if (worker) {
+              worker.close();
+              worker = null;
+            }
+            if (!success) {
+              console.error('Receipt print failed:', errorType);
+              resolve({ success: false, error: errorType });
+            } else {
+              console.log('Receipt printed silently to:', deviceName || 'Default printer');
+              resolve({ success: true });
+            }
+          }
+        );
+      }, 300);
+    });
+
+    worker.webContents.on('did-fail-load', () => {
+      if (worker) {
+        worker.close();
+        worker = null;
+      }
+      resolve({ success: false, error: 'Failed to load receipt template' });
+    });
+  });
+});
+
+// App Lifecycle
+app.whenReady().then(createWindow);
+
+app.on('window-all-closed', () => {
+  if (process.platform !== 'darwin') {
+    app.quit();
+  }
+});
+
+app.on('activate', () => {
+  if (BrowserWindow.getAllWindows().length === 0) {
+    createWindow();
+  }
+});

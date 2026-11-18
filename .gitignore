@@ -3,6 +3,7 @@
 
 # Build outputs
 **/dist
+**/release
 
 # Environment variables
 .env
