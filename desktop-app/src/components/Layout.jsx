@@ -1,9 +1,39 @@
+import { useState, useEffect } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import '../App.css'
 
 function Layout({ children, isOnline, syncStatus, onClearData, showOrderHeader, orderForm, flowStarted, onBackToTables, onGoHome }) {
   const location = useLocation()
   const navigate = useNavigate()
+  const [localIP, setLocalIP] = useState('')
+  const [showSyncModal, setShowSyncModal] = useState(false)
+  const [copied, setCopied] = useState(false)
+
+  useEffect(() => {
+    // 1. Try Electron native IP detection
+    if (typeof window !== 'undefined' && window.electronAPI?.getLocalIP) {
+      window.electronAPI.getLocalIP().then((ip) => {
+        if (ip && ip !== '127.0.0.1') setLocalIP(ip)
+      }).catch(() => {})
+    }
+    // 2. Fetch from sync-server network info
+    fetch('http://localhost:5000/api/network-info')
+      .then((r) => r.json())
+      .then((data) => {
+        if (data?.localIP && data.localIP !== '127.0.0.1') {
+          setLocalIP(data.localIP)
+        }
+      })
+      .catch(() => {})
+  }, [])
+
+  const captainUrl = localIP ? `http://${localIP}:5000` : 'http://localhost:5000'
+
+  const copyCaptainUrl = () => {
+    navigator.clipboard?.writeText(captainUrl)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 3000)
+  }
   
   const isActive = (path) => location.pathname === path
   const isOrderPage = location.pathname === '/'
@@ -177,6 +207,25 @@ function Layout({ children, isOnline, syncStatus, onClearData, showOrderHeader, 
           >
             🗑️ Clear Data
           </button>
+          <button
+            type="button"
+            className="pill"
+            onClick={() => setShowSyncModal(true)}
+            style={{
+              background: '#047857',
+              color: '#ecfdf5',
+              border: '1px solid #059669',
+              cursor: 'pointer',
+              fontWeight: 600,
+              fontSize: '13px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+            }}
+            title="Click to view Wi-Fi Captain App address"
+          >
+            📡 Wi-Fi: {localIP || 'Connecting...'}
+          </button>
           <div className="pill">
             <span className={`status-dot ${isOnline ? 'status-online' : 'status-offline'}`} /> {isOnline ? 'Online' : 'Offline'}
           </div>
@@ -185,6 +234,124 @@ function Layout({ children, isOnline, syncStatus, onClearData, showOrderHeader, 
           </div>
         </div>
       </header>
+
+      {/* Wi-Fi Sync Instructions Modal */}
+      {showSyncModal && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(15, 23, 42, 0.75)',
+            backdropFilter: 'blur(4px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 99999,
+          }}
+          onClick={() => setShowSyncModal(false)}
+        >
+          <div
+            style={{
+              background: '#1e293b',
+              color: '#f8fafc',
+              padding: '24px 28px',
+              borderRadius: '12px',
+              maxWidth: '520px',
+              width: '90%',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+              border: '1px solid #334155',
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h2 style={{ margin: 0, fontSize: '18px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                📡 Wi-Fi Local Sync (Zero Cloud)
+              </h2>
+              <button
+                type="button"
+                onClick={() => setShowSyncModal(false)}
+                style={{ background: 'transparent', border: 'none', color: '#94a3b8', fontSize: '20px', cursor: 'pointer' }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <p style={{ color: '#94a3b8', fontSize: '14px', lineHeight: '1.5', margin: '0 0 16px 0' }}>
+              Both Captain App (mobile phones) and Desktop POS sync directly over your local restaurant Wi-Fi router. 
+              No internet or cloud storage is needed.
+            </p>
+
+            <div style={{ background: '#0f172a', padding: '16px', borderRadius: '8px', border: '1px solid #334155', marginBottom: '16px' }}>
+              <div style={{ fontSize: '12px', color: '#64748b', textTransform: 'uppercase', fontWeight: 'bold', marginBottom: '6px' }}>
+                📱 Open on Captain Phone / Tablet:
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <input
+                  type="text"
+                  readOnly
+                  value={captainUrl}
+                  style={{
+                    flex: 1,
+                    background: '#1e293b',
+                    color: '#38bdf8',
+                    border: '1px solid #475569',
+                    padding: '8px 12px',
+                    borderRadius: '6px',
+                    fontSize: '14px',
+                    fontWeight: 'bold',
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={copyCaptainUrl}
+                  style={{
+                    background: copied ? '#10b981' : '#3b82f6',
+                    color: 'white',
+                    border: 'none',
+                    padding: '8px 14px',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontWeight: 'bold',
+                    fontSize: '13px',
+                  }}
+                >
+                  {copied ? '✓ Copied' : 'Copy'}
+                </button>
+              </div>
+            </div>
+
+            <div style={{ fontSize: '13px', color: '#cbd5e1', lineHeight: '1.6' }}>
+              <strong>Quick 2-Step Setup:</strong>
+              <ol style={{ paddingLeft: '20px', margin: '8px 0 0 0' }}>
+                <li>Connect all captain phones to the <strong>same Wi-Fi</strong> as this PC.</li>
+                <li>Open <strong>{captainUrl}</strong> in Safari or Chrome on the phone.</li>
+              </ol>
+              <div style={{ marginTop: '12px', padding: '8px 12px', background: '#064e3b', color: '#a7f3d0', borderRadius: '6px', fontSize: '12px' }}>
+                ✓ Any order created by a Captain will instantly appear on this screen and automatically queue in the thermal print center!
+              </div>
+            </div>
+
+            <div style={{ marginTop: '20px', textAlign: 'right' }}>
+              <button
+                type="button"
+                onClick={() => setShowSyncModal(false)}
+                style={{
+                  background: '#334155',
+                  color: 'white',
+                  border: 'none',
+                  padding: '8px 18px',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontWeight: 'bold',
+                  fontSize: '13px',
+                }}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
       {children}
     </div>
   )

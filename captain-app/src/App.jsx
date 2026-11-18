@@ -2,8 +2,31 @@ import { useState, useEffect, useMemo, useRef } from 'react'
 import './App.css'
 import { items as MENU_ITEMS } from './data/items.js'
 
-const DEFAULT_PRINT_SERVER = import.meta.env.VITE_PRINT_SERVER_URL || 'http://localhost:5001'
-const DEFAULT_SYNC_SERVER = import.meta.env.VITE_SYNC_SERVER_URL || 'http://localhost:5000/api'
+// Auto-detect local Wi-Fi host IP when opened on phone/tablet over LAN
+const getAutoSyncServer = () => {
+  if (typeof window !== 'undefined') {
+    const saved = localStorage.getItem('sync_server_url')
+    if (saved) return saved
+    if (window.location.hostname && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+      return `http://${window.location.hostname}:5000/api`
+    }
+  }
+  return import.meta.env.VITE_SYNC_SERVER_URL || 'http://localhost:5000/api'
+}
+
+const getAutoPrintServer = () => {
+  if (typeof window !== 'undefined') {
+    const saved = localStorage.getItem('print_server_url')
+    if (saved) return saved
+    if (window.location.hostname && window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+      return `http://${window.location.hostname}:5001`
+    }
+  }
+  return import.meta.env.VITE_PRINT_SERVER_URL || 'http://localhost:5001'
+}
+
+const DEFAULT_PRINT_SERVER = 'http://localhost:5001'
+const DEFAULT_SYNC_SERVER = 'http://localhost:5000/api'
 const TABLES = ['A1', 'A2', 'A3', 'B1', 'B2', 'B3', 'C1', 'C2', 'C3', 'C4', 'F1', 'F2', 'F4', 'Parcel']
 const CAPTAINS = ['Captain 1', 'Captain 2', 'Captain 3', 'Captain 4']
 
@@ -22,10 +45,17 @@ function App() {
   const [showSettingsModal, setShowSettingsModal] = useState(false)
 
   // Server URLs (editable via settings modal)
-  const [printServerUrl, setPrintServerUrl] = useState(() => localStorage.getItem('print_server_url') || DEFAULT_PRINT_SERVER)
-  const [syncServerUrl, setSyncServerUrl] = useState(() => localStorage.getItem('sync_server_url') || DEFAULT_SYNC_SERVER)
+  const [printServerUrl, setPrintServerUrl] = useState(getAutoPrintServer)
+  const [syncServerUrl, setSyncServerUrl] = useState(getAutoSyncServer)
   const [tempPrintUrl, setTempPrintUrl] = useState(printServerUrl)
   const [tempSyncUrl, setTempSyncUrl] = useState(syncServerUrl)
+  const [quickIP, setQuickIP] = useState(() => {
+    if (typeof window !== 'undefined' && window.location.hostname && window.location.hostname !== 'localhost') {
+      return window.location.hostname
+    }
+    return ''
+  })
+  const [testResult, setTestResult] = useState(null)
 
   // Connection & Orders
   const [serverStatus, setServerStatus] = useState('unknown')
@@ -107,9 +137,11 @@ function App() {
     }
   }
 
-  // Subscribe to real-time updates via EventSource
+  // Subscribe to real-time updates via EventSource + Polling fallback
   useEffect(() => {
     fetchOrdersFromServer()
+    // 3-second periodic sync prevents dropped orders when mobile screen locks/wakes
+    const pollId = setInterval(fetchOrdersFromServer, 3000)
 
     let eventSource
     try {
@@ -119,14 +151,21 @@ function App() {
       eventSource.addEventListener('message', (event) => {
         try {
           const data = JSON.parse(event.data)
-          if (data.type === 'ORDER_CREATED') {
-            setOrders(prev => [...prev, data.data])
-          } else if (data.type === 'ORDER_UPDATED') {
+          if (data.type === 'ORDER_CREATED' && data.data) {
+            setOrders(prev => {
+              if (prev.some(o => o.id === data.data.id)) return prev
+              return [...prev, data.data]
+            })
+          } else if (data.type === 'ORDER_UPDATED' && data.data) {
             setOrders(prev => prev.map(o => o.id === data.data.id ? data.data : o))
-          } else if (data.type === 'ORDER_DELETED') {
-            setOrders(prev => prev.filter(o => o.id !== data.data.id))
+          } else if (data.type === 'ORDER_DELETED' && data.data) {
+            const delId = data.data.id || data.data
+            setOrders(prev => prev.filter(o => o.id !== delId))
           } else if (data.type === 'TABLE_CLEARED') {
-            setOrders(prev => prev.filter(o => o.table !== data.data.table))
+            const tbl = data.data?.table || data.data?.tableId
+            setOrders(prev => prev.filter(o => o.table !== tbl))
+          } else if (data.type === 'ALL_CLEARED') {
+            setOrders([])
           }
           setSyncStatus('online')
         } catch (error) {
@@ -143,6 +182,7 @@ function App() {
     }
 
     return () => {
+      clearInterval(pollId)
       if (eventSource) eventSource.close()
     }
   }, [syncServerUrl])
@@ -201,15 +241,15 @@ function App() {
 
   // Table orders and statuses
   const tableOrders = useMemo(() => {
-    return orders.filter(order => order.table === table && !order.billed)
+    return orders.filter(order => order.table === table && !order.billed && order.status !== 'billed' && order.status !== 'paid')
   }, [orders, table])
 
   const isTableOccupied = (tableSlot) => {
-    return orders.some(order => order.table === tableSlot && !order.billed)
+    return orders.some(order => order.table === tableSlot && !order.billed && order.status !== 'billed' && order.status !== 'paid')
   }
 
   const isTableBilled = (tableSlot) => {
-    return orders.some(order => order.table === tableSlot && order.billed)
+    return orders.some(order => order.table === tableSlot && (order.billed || order.status === 'billed') && order.status !== 'paid')
   }
 
   // Delta items calculation for KOT
@@ -287,37 +327,42 @@ function App() {
     }))
 
     try {
-      // 1. Save to Sync Server
+      // 1. Save to Sync Server (Zero cloud, local Wi-Fi sync)
       await createOrderInSync(newOrder)
 
-      // 2. Send to Print Server
-      const response = await fetch(`${printServerUrl}/print`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          type: 'KOT',
-          data: {
-            orderNumber: orderNumber,
-            table: table,
-            waiter: waiter,
-            items: deltaItems,
-            isRunningOrder: isRunning,
-            timestamp: new Date().toLocaleString()
-          }
+      // 2. Optionally send to local Print Server if configured
+      let printed = false
+      try {
+        const response = await fetch(`${printServerUrl}/print`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: 'KOT',
+            data: {
+              orderNumber: orderNumber,
+              table: table,
+              waiter: waiter,
+              items: deltaItems,
+              isRunningOrder: isRunning,
+              timestamp: new Date().toLocaleString()
+            }
+          })
         })
-      })
+        if (response.ok) printed = true
+      } catch (_) {}
 
-      if (response.ok) {
-        alert(`✓ KOT #${orderNumber} sent to kitchen for Table ${table}!`)
-        setPendingKOT(null)
-        setShowCartDrawer(false)
+      setPendingKOT(null)
+      setShowCartDrawer(false)
+      setCart([])
+
+      if (printed) {
+        alert(`✓ KOT #${orderNumber} sent & printed for Table ${table}!`)
       } else {
-        alert('Order saved, but failed to print KOT on printer.')
-        setPendingKOT(null)
+        alert(`✓ KOT #${orderNumber} synced to Desktop POS for Table ${table}!`)
       }
     } catch (error) {
-      console.error('Error saving/printing order:', error)
-      alert('Error sending order. Check sync/printer server connection.')
+      console.error('Error saving order:', error)
+      alert('Error sending order. Check Wi-Fi connection to Desktop POS.')
     }
   }
 
@@ -423,6 +468,32 @@ function App() {
   const cartItemCount = cart.reduce((sum, item) => sum + item.qty, 0)
   const runningTotal = tableOrders.reduce((sum, order) => sum + order.total, 0)
   const grandTotal = cartTotal + runningTotal
+
+  const handleApplyQuickIP = (ipToApply) => {
+    const cleanIP = (ipToApply || quickIP).trim().replace(/^https?:\/\//, '').replace(/\/.*$/, '').replace(/:.*$/, '')
+    if (!cleanIP) return
+    const newSync = `http://${cleanIP}:5000/api`
+    const newPrint = `http://${cleanIP}:5001`
+    setTempSyncUrl(newSync)
+    setTempPrintUrl(newPrint)
+    setTestResult(null)
+  }
+
+  const handleTestConnection = async () => {
+    setTestResult('testing')
+    try {
+      const cleanUrl = tempSyncUrl.trim()
+      const res = await fetch(`${cleanUrl}/health`)
+      const data = await res.json()
+      if (data?.status === 'ok') {
+        setTestResult({ ok: true, msg: `Connected to Desktop POS (${data.localIP || 'Host PC'}) ✅` })
+      } else {
+        setTestResult({ ok: false, msg: 'Server reached, but status not ok.' })
+      }
+    } catch (err) {
+      setTestResult({ ok: false, msg: 'Cannot connect! Make sure Phone & PC are on the SAME Wi-Fi router.' })
+    }
+  }
 
   const handleSaveSettings = () => {
     localStorage.setItem('print_server_url', tempPrintUrl.trim())
@@ -1046,13 +1117,76 @@ function App() {
         <div className="modal-backdrop" onClick={() => setShowSettingsModal(false)}>
           <div className="dialog-modal settings-dialog" onClick={(e) => e.stopPropagation()}>
             <div className="dialog-header">
-              <h3>Server Configuration</h3>
+              <h3>📡 Wi-Fi POS Server Setup</h3>
               <button type="button" className="btn-close-modal" onClick={() => setShowSettingsModal(false)}>✕</button>
             </div>
             <div className="settings-body">
               <p className="settings-hint">
-                Configure local POS counter IP or cloud backend URLs for synchronization and printing.
+                Connect your mobile phone to the <strong>same Wi-Fi router</strong> as the Desktop PC. Zero cloud needed!
               </p>
+
+              {/* Quick Wi-Fi IP Auto Config */}
+              <div className="form-group" style={{ background: '#f8fafc', padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1' }}>
+                <label style={{ fontWeight: 'bold', color: '#1e293b' }}>⚡ Desktop PC IP Address:</label>
+                <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
+                  <input
+                    type="text"
+                    className="settings-input"
+                    value={quickIP}
+                    onChange={(e) => setQuickIP(e.target.value)}
+                    placeholder="e.g. 192.168.1.6"
+                    style={{ flex: 1 }}
+                  />
+                  <button
+                    type="button"
+                    className="btn-primary"
+                    style={{ padding: '8px 12px', fontSize: '13px', whiteSpace: 'nowrap' }}
+                    onClick={() => handleApplyQuickIP(quickIP)}
+                  >
+                    Apply IP
+                  </button>
+                </div>
+                <span style={{ fontSize: '11px', color: '#64748b', display: 'block', marginTop: '4px' }}>
+                  (Find this IP in the top green banner of the Desktop POS screen)
+                </span>
+              </div>
+
+              {/* Test Connection Button & Status */}
+              <div style={{ margin: '14px 0' }}>
+                <button
+                  type="button"
+                  onClick={handleTestConnection}
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    borderRadius: '8px',
+                    border: '1px solid #3b82f6',
+                    background: testResult === 'testing' ? '#93c5fd' : '#eff6ff',
+                    color: '#1d4ed8',
+                    fontWeight: 'bold',
+                    cursor: 'pointer',
+                    fontSize: '13px'
+                  }}
+                >
+                  {testResult === 'testing' ? '⏳ Testing Wi-Fi Connection...' : '🧪 Test Connection to Desktop POS'}
+                </button>
+                {testResult && testResult !== 'testing' && (
+                  <div
+                    style={{
+                      marginTop: '8px',
+                      padding: '8px 12px',
+                      borderRadius: '6px',
+                      fontSize: '12px',
+                      fontWeight: 'bold',
+                      background: testResult.ok ? '#d1fae5' : '#fee2e2',
+                      color: testResult.ok ? '#065f46' : '#991b1b',
+                    }}
+                  >
+                    {testResult.msg}
+                  </div>
+                )}
+              </div>
+
               <div className="form-group">
                 <label>Sync Server API URL (Port 5000):</label>
                 <input
@@ -1060,7 +1194,7 @@ function App() {
                   className="settings-input"
                   value={tempSyncUrl}
                   onChange={(e) => setTempSyncUrl(e.target.value)}
-                  placeholder="e.g. http://192.168.1.100:5000/api"
+                  placeholder="e.g. http://192.168.1.6:5000/api"
                 />
               </div>
               <div className="form-group">
@@ -1070,7 +1204,7 @@ function App() {
                   className="settings-input"
                   value={tempPrintUrl}
                   onChange={(e) => setTempPrintUrl(e.target.value)}
-                  placeholder="e.g. http://192.168.1.100:5001"
+                  placeholder="e.g. http://192.168.1.6:5001"
                 />
               </div>
             </div>
@@ -1081,6 +1215,7 @@ function App() {
                 onClick={() => {
                   setTempSyncUrl(DEFAULT_SYNC_SERVER)
                   setTempPrintUrl(DEFAULT_PRINT_SERVER)
+                  setTestResult(null)
                 }}
               >
                 Reset Default

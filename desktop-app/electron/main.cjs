@@ -1,8 +1,21 @@
 const { app, BrowserWindow, ipcMain, Menu } = require('electron');
 const path = require('path');
 const fs = require('fs');
+const os = require('os');
 
 let mainWindow = null;
+
+function getLocalIP() {
+  const interfaces = os.networkInterfaces();
+  for (const name of Object.keys(interfaces)) {
+    for (const net of interfaces[name]) {
+      if (net.family === 'IPv4' && !net.internal) {
+        return net.address;
+      }
+    }
+  }
+  return '127.0.0.1';
+}
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -119,6 +132,11 @@ function setupMenu() {
 // =========================================================
 // Silent Printing IPC Handlers
 // =========================================================
+
+// 0. Get Host Wi-Fi IP address
+ipcMain.handle('get-local-ip', async () => {
+  return getLocalIP();
+});
 
 // 1. Get all installed Windows printers
 ipcMain.handle('get-printers', async () => {

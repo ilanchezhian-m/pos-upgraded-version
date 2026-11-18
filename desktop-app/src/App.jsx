@@ -293,7 +293,7 @@ function App() {
       
       // Mark all table orders as billed in sync server
       for (const order of tableOrders) {
-        await updateOrderInSync(order.id, { ...order, status: 'billed' })
+        await updateOrderInSync(order.id, { ...order, status: 'billed', billed: true })
       }
       
       // Printing handled automatically by Sync Server
@@ -397,7 +397,7 @@ function App() {
     setPrints((prev) => prev.map((p) => (p.id === jobId ? { ...p, status: 'done' } : p)))
   }
 
-  // Sync server functions
+  // Sync server functions (100% Local Wi-Fi sync, zero cloud)
   const fetchOrdersFromServer = useCallback(async () => {
     try {
       const res = await fetch(`${SYNC_SERVER_URL}/orders`)
@@ -405,11 +405,23 @@ function App() {
       const serverOrders = await res.json()
       setOrders(serverOrders)
       setSyncStatus('online')
+
+      // Sync server orders into local IndexedDB and ensure KOT print jobs are queued
+      for (const order of serverOrders) {
+        await saveOrder(order)
+        if (order.items && order.items.length && order.status !== 'billed' && order.status !== 'paid') {
+          const printsList = await listPrintJobs()
+          if (!printsList.some(p => p.refId === order.id && p.type === 'KOT')) {
+            const kotJob = await savePrintJob({ type: 'KOT', refId: order.id, status: 'queued' })
+            setPrints((prev) => [kotJob, ...prev])
+          }
+        }
+      }
+
       return serverOrders
     } catch (err) {
-      console.error('Failed to fetch from sync server:', err)
+      console.warn('Sync server offline, using local DB:', err)
       setSyncStatus('offline')
-      // Fall back to local IndexedDB
       const localOrders = await listOrders()
       setOrders(localOrders)
       return localOrders
@@ -426,11 +438,11 @@ function App() {
       if (!res.ok) throw new Error('Failed to create order')
       const newOrder = await res.json()
       setSyncStatus('online')
+      await saveOrder(newOrder)
       return newOrder
     } catch (err) {
       console.error('Failed to create order in sync server:', err)
       setSyncStatus('offline')
-      // Fall back to local IndexedDB
       const localOrder = await saveOrder(orderData)
       return localOrder
     }
@@ -446,38 +458,103 @@ function App() {
       if (!res.ok) throw new Error('Failed to update order')
       const updatedOrder = await res.json()
       setSyncStatus('online')
+      await saveOrder(updatedOrder)
       return updatedOrder
     } catch (err) {
       console.error('Failed to update order in sync server:', err)
       setSyncStatus('offline')
-      // Fall back to local IndexedDB
       const localOrder = await saveOrder({ id: orderId, ...updates })
       return localOrder
     }
   }, [])
 
-  // Subscribe to real-time updates from sync server
+  // Subscribe to real-time updates from sync server via SSE
   useEffect(() => {
     let eventSource = null
     const subscribeToUpdates = () => {
       try {
         eventSource = new EventSource(`${SYNC_SERVER_URL.replace('/api', '')}/api/sync`)
-        eventSource.addEventListener('ORDER_CREATED', (event) => {
-          const newOrder = JSON.parse(event.data)
-          setOrders((prev) => [newOrder, ...prev])
+
+        // Handle generic message payload
+        eventSource.addEventListener('message', async (event) => {
+          try {
+            const payload = JSON.parse(event.data)
+            if (payload.type === 'ORDER_CREATED' && payload.data) {
+              const newOrder = payload.data
+              setOrders((prev) => {
+                if (prev.some((o) => o.id === newOrder.id)) return prev
+                return [newOrder, ...prev]
+              })
+              await saveOrder(newOrder)
+              const existingPrints = await listPrintJobs()
+              if (!existingPrints.some(p => p.refId === newOrder.id && p.type === 'KOT')) {
+                const kotJob = await savePrintJob({ type: 'KOT', refId: newOrder.id, status: 'queued' })
+                setPrints((prev) => [kotJob, ...prev])
+              }
+            } else if (payload.type === 'ORDER_UPDATED' && payload.data) {
+              const updated = payload.data
+              setOrders((prev) => prev.map((o) => (o.id === updated.id ? updated : o)))
+              await saveOrder(updated)
+            } else if (payload.type === 'ORDER_DELETED' && payload.data) {
+              const delId = payload.data?.id || payload.data
+              setOrders((prev) => prev.filter((o) => o.id !== delId))
+            } else if (payload.type === 'TABLE_CLEARED' && payload.data) {
+              const tbl = payload.data.table || payload.data.tableId
+              setOrders((prev) => prev.filter((o) => o.table !== tbl))
+            } else if (payload.type === 'ALL_CLEARED') {
+              setOrders([])
+              setBills([])
+              setPrints([])
+              await clearAll()
+            }
+            setSyncStatus('online')
+          } catch (_) {}
         })
-        eventSource.addEventListener('ORDER_UPDATED', (event) => {
-          const updatedOrder = JSON.parse(event.data)
-          setOrders((prev) => prev.map((o) => (o.id === updatedOrder.id ? updatedOrder : o)))
+
+        // Also handle typed events directly
+        eventSource.addEventListener('ORDER_CREATED', async (event) => {
+          try {
+            const newOrder = JSON.parse(event.data)
+            setOrders((prev) => {
+              if (prev.some((o) => o.id === newOrder.id)) return prev
+              return [newOrder, ...prev]
+            })
+            await saveOrder(newOrder)
+            const existingPrints = await listPrintJobs()
+            if (!existingPrints.some(p => p.refId === newOrder.id && p.type === 'KOT')) {
+              const kotJob = await savePrintJob({ type: 'KOT', refId: newOrder.id, status: 'queued' })
+              setPrints((prev) => [kotJob, ...prev])
+            }
+          } catch (_) {}
         })
+
+        eventSource.addEventListener('ORDER_UPDATED', async (event) => {
+          try {
+            const updated = JSON.parse(event.data)
+            setOrders((prev) => prev.map((o) => (o.id === updated.id ? updated : o)))
+            await saveOrder(updated)
+          } catch (_) {}
+        })
+
         eventSource.addEventListener('ORDER_DELETED', (event) => {
-          const { id } = JSON.parse(event.data)
-          setOrders((prev) => prev.filter((o) => o.id !== id))
+          try {
+            const { id } = JSON.parse(event.data)
+            setOrders((prev) => prev.filter((o) => o.id !== id))
+          } catch (_) {}
         })
+
         eventSource.addEventListener('TABLE_CLEARED', (event) => {
-          const { tableId } = JSON.parse(event.data)
-          setOrders((prev) => prev.filter((o) => o.table !== tableId))
+          try {
+            const data = JSON.parse(event.data)
+            const tbl = data.table || data.tableId
+            setOrders((prev) => prev.filter((o) => o.table !== tbl))
+          } catch (_) {}
         })
+
+        eventSource.addEventListener('error', () => {
+          setSyncStatus('offline')
+        })
+
         setSyncStatus('online')
       } catch (err) {
         console.error('Failed to subscribe to updates:', err)
@@ -490,26 +567,30 @@ function App() {
     }
   }, [])
 
-  // Fetch orders on mount
+  // Poll sync server every 3 seconds to guarantee 100% sync
   useEffect(() => {
     fetchOrdersFromServer()
+    const pollInterval = setInterval(fetchOrdersFromServer, 3000)
+    return () => clearInterval(pollInterval)
   }, [fetchOrdersFromServer])
 
   async function markTableAsPaid(table) {
-    // Mark all orders for this table as paid in sync server
     const tableOrders = orders.filter(o => o.table === table && o.status !== 'paid')
     for (const order of tableOrders) {
-      await updateOrderInSync(order.id, { ...order, status: 'paid' })
+      await updateOrderInSync(order.id, { ...order, status: 'paid', paid: true })
     }
+    try {
+      await fetch(`${SYNC_SERVER_URL}/orders/table/${table}/clear`, { method: 'DELETE' })
+    } catch (_) {}
   }
 
   async function handleClearAllData() {
     try {
-      // Clear IndexedDB
       await clearAll()
-      // Clear localStorage
       localStorage.removeItem('orderNumberCounter')
-      // Reset state
+      try {
+        await fetch(`${SYNC_SERVER_URL.replace('/api', '')}/api/clear-all`, { method: 'POST' })
+      } catch (_) {}
       setOrders([])
       setBills([])
       setPrints([])

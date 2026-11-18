@@ -31,13 +31,27 @@ function PrintPage() {
 
   useEffect(() => {
     const fetchData = async () => {
+      let serverOrders = []
+      try {
+        const res = await fetch('http://localhost:5000/api/orders')
+        if (res.ok) serverOrders = await res.json()
+      } catch (_) {}
+
       const [o, b, p] = await Promise.all([listOrders(), listBills(), listPrintJobs()])
-      setOrders(o)
+      
+      // Merge server orders with local orders
+      const mergedMap = new Map()
+      serverOrders.forEach((so) => mergedMap.set(so.id, so))
+      o.forEach((lo) => {
+        if (!mergedMap.has(lo.id)) mergedMap.set(lo.id, lo)
+      })
+
+      setOrders(Array.from(mergedMap.values()))
       setBills(b)
       setPrints(p)
     }
     fetchData()
-    const interval = setInterval(fetchData, 3000)
+    const interval = setInterval(fetchData, 2500)
     return () => clearInterval(interval)
   }, [])
 

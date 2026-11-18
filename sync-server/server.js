@@ -2,6 +2,7 @@ import express from 'express'
 import cors from 'cors'
 import fs from 'fs'
 import path from 'path'
+import os from 'os'
 import { fileURLToPath } from 'url'
 import { v4 as uuidv4 } from 'uuid'
 
@@ -9,162 +10,295 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const app = express()
 const PORT = 5000
 
-// Database file path
-const DB_FILE = path.join(__dirname, 'orders.json')
+// Local JSON Database file paths (Zero cloud, 100% on PC disk)
+const ORDERS_FILE = path.join(__dirname, 'orders.json')
+const BILLS_FILE = path.join(__dirname, 'bills.json')
+const PRINTS_FILE = path.join(__dirname, 'prints.json')
+
+// Detect Host PC's Wi-Fi / LAN IP address
+export function getLocalIPAddress() {
+  const interfaces = os.networkInterfaces()
+  for (const name of Object.keys(interfaces)) {
+    for (const net of interfaces[name]) {
+      // Find active external IPv4 address
+      if (net.family === 'IPv4' && !net.internal) {
+        return net.address
+      }
+    }
+  }
+  return '127.0.0.1'
+}
 
 // Middleware
 app.use(cors())
-app.use(express.json())
+app.use(express.json({ limit: '10mb' }))
 
-// Helper functions
-const loadOrders = () => {
+// Safe JSON file helpers
+const loadJSON = (file) => {
   try {
-    if (fs.existsSync(DB_FILE)) {
-      const data = fs.readFileSync(DB_FILE, 'utf-8')
+    if (fs.existsSync(file)) {
+      const data = fs.readFileSync(file, 'utf-8')
       return JSON.parse(data)
     }
   } catch (error) {
-    console.error('Error loading orders:', error)
+    console.error(`Error loading ${file}:`, error)
   }
   return []
 }
 
-const saveOrders = (orders) => {
+const saveJSON = (file, data) => {
   try {
-    fs.writeFileSync(DB_FILE, JSON.stringify(orders, null, 2))
+    fs.writeFileSync(file, JSON.stringify(data, null, 2), 'utf-8')
   } catch (error) {
-    console.error('Error saving orders:', error)
+    console.error(`Error saving ${file}:`, error)
   }
 }
 
-// GET all orders
+// SSE Real-time clients pool
+const clients = new Set()
+
+const broadcastUpdate = (message) => {
+  const json = JSON.stringify(message)
+  clients.forEach((client) => {
+    try {
+      // Standard generic message
+      client.write(`data: ${json}\n\n`)
+      // Also send named event for addEventListener(TYPE)
+      if (message.type) {
+        client.write(`event: ${message.type}\ndata: ${JSON.stringify(message.data || message)}\n\n`)
+      }
+    } catch (err) {
+      console.error('SSE broadcast error:', err)
+    }
+  })
+}
+
+// SSE Heartbeat (keeps Wi-Fi connection alive across mobile sleep)
+setInterval(() => {
+  clients.forEach((client) => {
+    try {
+      client.write(': heartbeat\n\n')
+    } catch (_) {}
+  })
+}, 15000)
+
+// =========================================================
+// Real-Time Sync Stream (SSE)
+// =========================================================
+app.get('/api/sync', (req, res) => {
+  res.setHeader('Content-Type', 'text/event-stream')
+  res.setHeader('Cache-Control', 'no-cache')
+  res.setHeader('Connection', 'keep-alive')
+  res.flushHeaders?.()
+
+  clients.add(res)
+  res.write(`data: {"type":"CONNECTED","message":"Connected to Topi Vappa Wi-Fi Sync Server","ip":"${getLocalIPAddress()}"}\n\n`)
+
+  req.on('close', () => {
+    clients.delete(res)
+  })
+})
+
+// =========================================================
+// Network & Health APIs
+// =========================================================
+app.get('/api/network-info', (req, res) => {
+  const ip = getLocalIPAddress()
+  res.json({
+    localIP: ip,
+    port: PORT,
+    printPort: 5001,
+    captainUrl: `http://${ip}:${PORT}`,
+    captainDevUrl: `http://${ip}:3001`,
+    desktopSyncUrl: `http://localhost:${PORT}/api`,
+    timestamp: new Date().toISOString(),
+  })
+})
+
+app.get('/api/health', (req, res) => {
+  const orders = loadJSON(ORDERS_FILE)
+  res.json({
+    status: 'ok',
+    server: 'Topi Vappa Local Sync Hub',
+    localIP: getLocalIPAddress(),
+    port: PORT,
+    activeOrders: orders.length,
+    connectedClients: clients.size,
+    timestamp: new Date().toISOString(),
+  })
+})
+
+// =========================================================
+// Orders API
+// =========================================================
 app.get('/api/orders', (req, res) => {
-  const orders = loadOrders()
-  res.json(orders)
+  res.json(loadJSON(ORDERS_FILE))
 })
 
-// GET orders for a specific table
 app.get('/api/orders/table/:tableId', (req, res) => {
-  const orders = loadOrders()
-  const tableOrders = orders.filter(order => order.table === req.params.tableId)
-  res.json(tableOrders)
+  const orders = loadJSON(ORDERS_FILE)
+  res.json(orders.filter((o) => o.table === req.params.tableId))
 })
 
-// GET single order by ID
 app.get('/api/orders/:id', (req, res) => {
-  const orders = loadOrders()
-  const order = orders.find(o => o.id === req.params.id)
-  if (order) {
-    res.json(order)
-  } else {
-    res.status(404).json({ error: 'Order not found' })
-  }
+  const orders = loadJSON(ORDERS_FILE)
+  const order = orders.find((o) => o.id === req.params.id)
+  if (order) res.json(order)
+  else res.status(404).json({ error: 'Order not found' })
 })
 
-// CREATE new order
 app.post('/api/orders', (req, res) => {
-  const orders = loadOrders()
+  const orders = loadJSON(ORDERS_FILE)
   const newOrder = {
-    id: uuidv4(),
+    id: req.body.id || uuidv4(),
     ...req.body,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString()
+    createdAt: req.body.createdAt || new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
   }
-  orders.push(newOrder)
-  saveOrders(orders)
-  
-  // Broadcast to all clients
+  orders.unshift(newOrder)
+  saveJSON(ORDERS_FILE, orders)
+
   broadcastUpdate({ type: 'ORDER_CREATED', data: newOrder })
-  
   res.json(newOrder)
 })
 
-// UPDATE order
 app.put('/api/orders/:id', (req, res) => {
-  const orders = loadOrders()
-  const index = orders.findIndex(o => o.id === req.params.id)
-  
+  const orders = loadJSON(ORDERS_FILE)
+  const index = orders.findIndex((o) => o.id === req.params.id)
+
   if (index !== -1) {
     orders[index] = {
       ...orders[index],
       ...req.body,
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
     }
-    saveOrders(orders)
-    
-    // Broadcast update
+    saveJSON(ORDERS_FILE, orders)
+
     broadcastUpdate({ type: 'ORDER_UPDATED', data: orders[index] })
-    
     res.json(orders[index])
   } else {
     res.status(404).json({ error: 'Order not found' })
   }
 })
 
-// DELETE order
 app.delete('/api/orders/:id', (req, res) => {
-  const orders = loadOrders()
-  const index = orders.findIndex(o => o.id === req.params.id)
-  
+  const orders = loadJSON(ORDERS_FILE)
+  const index = orders.findIndex((o) => o.id === req.params.id)
+
   if (index !== -1) {
     const deleted = orders.splice(index, 1)[0]
-    saveOrders(orders)
-    
-    // Broadcast deletion
+    saveJSON(ORDERS_FILE, orders)
+
     broadcastUpdate({ type: 'ORDER_DELETED', data: deleted })
-    
     res.json({ success: true, data: deleted })
   } else {
     res.status(404).json({ error: 'Order not found' })
   }
 })
 
-// CLEAR all orders for a table
 app.delete('/api/orders/table/:tableId/clear', (req, res) => {
-  const orders = loadOrders()
-  const cleared = orders.filter(o => o.table === req.params.tableId)
-  const remaining = orders.filter(o => o.table !== req.params.tableId)
-  
-  saveOrders(remaining)
-  
-  // Broadcast
-  broadcastUpdate({ type: 'TABLE_CLEARED', data: { table: req.params.tableId } })
-  
-  res.json({ success: true, cleared: cleared.length })
-})
+  const orders = loadJSON(ORDERS_FILE)
+  const remaining = orders.filter((o) => o.table !== req.params.tableId)
+  const clearedCount = orders.length - remaining.length
 
-// WebSocket-like SSE support for real-time updates
-const clients = new Set()
+  saveJSON(ORDERS_FILE, remaining)
 
-app.get('/api/sync', (req, res) => {
-  res.setHeader('Content-Type', 'text/event-stream')
-  res.setHeader('Cache-Control', 'no-cache')
-  res.setHeader('Connection', 'keep-alive')
-  
-  clients.add(res)
-  
-  res.write('data: {"type":"CONNECTED","message":"Connected to sync server"}\n\n')
-  
-  req.on('close', () => {
-    clients.delete(res)
+  broadcastUpdate({
+    type: 'TABLE_CLEARED',
+    data: { table: req.params.tableId, tableId: req.params.tableId },
   })
+
+  res.json({ success: true, cleared: clearedCount })
 })
 
-// Broadcast function
-const broadcastUpdate = (message) => {
-  clients.forEach(client => {
-    client.write(`data: ${JSON.stringify(message)}\n\n`)
+// =========================================================
+// Bills API (Shared local storage)
+// =========================================================
+app.get('/api/bills', (req, res) => {
+  res.json(loadJSON(BILLS_FILE))
+})
+
+app.post('/api/bills', (req, res) => {
+  const bills = loadJSON(BILLS_FILE)
+  const newBill = {
+    id: req.body.id || uuidv4(),
+    ...req.body,
+    createdAt: req.body.createdAt || new Date().toISOString(),
+  }
+  bills.unshift(newBill)
+  saveJSON(BILLS_FILE, bills)
+
+  broadcastUpdate({ type: 'BILL_CREATED', data: newBill })
+  res.json(newBill)
+})
+
+// =========================================================
+// Prints API (Shared thermal print queue)
+// =========================================================
+app.get('/api/prints', (req, res) => {
+  res.json(loadJSON(PRINTS_FILE))
+})
+
+app.post('/api/prints', (req, res) => {
+  const prints = loadJSON(PRINTS_FILE)
+  const newJob = {
+    id: req.body.id || uuidv4(),
+    ...req.body,
+    status: req.body.status || 'queued',
+    createdAt: req.body.createdAt || new Date().toISOString(),
+  }
+  prints.unshift(newJob)
+  saveJSON(PRINTS_FILE, prints)
+
+  broadcastUpdate({ type: 'PRINT_JOB_CREATED', data: newJob })
+  res.json(newJob)
+})
+
+app.put('/api/prints/:id', (req, res) => {
+  const prints = loadJSON(PRINTS_FILE)
+  const idx = prints.findIndex((p) => p.id === req.params.id)
+  if (idx !== -1) {
+    prints[idx] = { ...prints[idx], ...req.body }
+    saveJSON(PRINTS_FILE, prints)
+    broadcastUpdate({ type: 'PRINT_JOB_UPDATED', data: prints[idx] })
+    res.json(prints[idx])
+  } else {
+    res.status(404).json({ error: 'Print job not found' })
+  }
+})
+
+// =========================================================
+// Clear All Local Data
+// =========================================================
+app.post('/api/clear-all', (req, res) => {
+  saveJSON(ORDERS_FILE, [])
+  saveJSON(BILLS_FILE, [])
+  saveJSON(PRINTS_FILE, [])
+  broadcastUpdate({ type: 'ALL_CLEARED' })
+  res.json({ success: true, message: 'All local data cleared' })
+})
+
+// =========================================================
+// Static Serving of Captain App (Phone / Tablet on Wi-Fi)
+// =========================================================
+const captainDist = path.join(__dirname, '../captain-app/dist')
+if (fs.existsSync(captainDist)) {
+  app.use(express.static(captainDist))
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api')) return next()
+    res.sendFile(path.join(captainDist, 'index.html'))
   })
 }
 
-// Health check
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() })
-})
-
-// Start server
-app.listen(PORT, () => {
-  console.log(`🔄 Sync Server running on http://localhost:${PORT}`)
-  console.log(`📋 Orders API: http://localhost:${PORT}/api/orders`)
-  console.log(`🔗 Real-time sync: http://localhost:${PORT}/api/sync`)
+// Start Server on 0.0.0.0 (Accessible across local Wi-Fi)
+app.listen(PORT, '0.0.0.0', () => {
+  const localIP = getLocalIPAddress()
+  console.log('========================================================')
+  console.log(' 🔄 Topi Vappa Wi-Fi Sync Hub (100% Local - No Cloud)')
+  console.log('========================================================')
+  console.log(` 📡 Host PC Wi-Fi IP : ${localIP}`)
+  console.log(` 📱 Captain App Link : http://${localIP}:${PORT}`)
+  console.log(` 💻 Local POS API    : http://localhost:${PORT}/api`)
+  console.log(` 🔗 Real-time Stream : http://${localIP}:${PORT}/api/sync`)
+  console.log('========================================================')
 })
