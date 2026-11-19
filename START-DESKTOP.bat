@@ -26,9 +26,6 @@ if %ERRORLEVEL% equ 0 (
         echo [Auto-Update] New bug fix / update detected on GitHub!
         echo [Auto-Update] Downloading updates automatically...
         git pull origin main --quiet 2>nul
-        echo [Auto-Update] Building latest updates...
-        call cmd /c "cd desktop-app && npm run build"
-        call cmd /c "cd captain-app && npm run build"
         echo [Auto-Update] Update complete! Running latest version.
       ) else (
         echo [Auto-Update] System is up to date!

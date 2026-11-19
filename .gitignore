@@ -1,9 +1,13 @@
 # Node dependencies
 **/node_modules
 
-# Build outputs
-**/dist
+# Build outputs (allow pre-compiled bundles for zero-node client machines)
+my-project/dist
 **/release
+!desktop-app/dist
+!desktop-app/dist/**
+!captain-app/dist
+!captain-app/dist/**
 
 # Environment variables
 .env

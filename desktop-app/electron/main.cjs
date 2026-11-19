@@ -59,14 +59,10 @@ function checkForUpdates(manual = false) {
   if (isUpdating) return;
   const projectRoot = getAppRoot();
 
+  // If Git repository is NOT found (Standalone distribution mode)
   if (!fs.existsSync(path.join(projectRoot, '.git'))) {
-    if (manual && mainWindow && !mainWindow.isDestroyed()) {
-      const { dialog } = require('electron');
-      dialog.showMessageBox(mainWindow, {
-        type: 'info',
-        title: 'Auto-Update',
-        message: 'Git repository not found. Auto-updates run from git-connected installations.',
-      });
+    if (manual) {
+      updateStandaloneApp(projectRoot, manual);
     }
     return;
   }
@@ -102,8 +98,8 @@ function checkForUpdates(manual = false) {
             mainWindow.webContents.send('update-status', { status: 'updating', commit: remote.slice(0, 7) });
           }
 
-          // Pull changes and rebuild automatically
-          exec('git pull origin main && npm --prefix desktop-app run build && npm --prefix captain-app run build', { cwd: projectRoot }, (buildErr) => {
+          // Pull pre-compiled changes (dist is tracked in git - ZERO Node.js required!)
+          exec('git pull origin main', { cwd: projectRoot }, (buildErr) => {
             isUpdating = false;
             if (!buildErr) {
               console.log('[Auto-Updater] App updated successfully! Reloading...');
@@ -117,7 +113,7 @@ function checkForUpdates(manual = false) {
                 }, 1500);
               }
             } else {
-              console.error('[Auto-Updater] Build failed:', buildErr);
+              console.error('[Auto-Updater] Git pull failed:', buildErr);
               if (mainWindow && !mainWindow.isDestroyed()) {
                 mainWindow.webContents.send('update-status', { status: 'failed' });
               }
@@ -139,6 +135,62 @@ function checkForUpdates(manual = false) {
         }
       });
     });
+  });
+}
+
+function updateStandaloneApp(projectRoot, manual) {
+  isUpdating = true;
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('update-status', { status: 'updating' });
+  }
+
+  const psScript = `
+    $ErrorActionPreference = 'Stop'
+    $tempZip = Join-Path $env:TEMP 'tv-pos-update.zip'
+    $tempDir = Join-Path $env:TEMP 'tv-pos-extract'
+    if (Test-Path $tempDir) { Remove-Item -Recurse -Force $tempDir }
+    [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
+    Invoke-WebRequest -Uri 'https://github.com/ilanchezhian-m/pos-upgraded-version/archive/refs/heads/main.zip' -OutFile $tempZip -UseBasicParsing
+    Expand-Archive -Path $tempZip -DestinationPath $tempDir -Force
+    $extracted = Join-Path $tempDir 'pos-upgraded-version-main'
+    $app = '${projectRoot.replace(/\\/g, '\\\\')}'
+    
+    Copy-Item -Path (Join-Path $extracted 'desktop-app\\dist\\*') -Destination (Join-Path $app 'dist') -Recurse -Force
+    Copy-Item -Path (Join-Path $extracted 'captain-app\\dist\\*') -Destination (Join-Path $app 'captain-app\\dist') -Recurse -Force
+    Copy-Item -Path (Join-Path $extracted 'sync-server\\server.js') -Destination (Join-Path $app 'sync-server\\server.js') -Force
+    Copy-Item -Path (Join-Path $extracted 'sync-server\\vault.js') -Destination (Join-Path $app 'sync-server\\vault.js') -Force
+    Copy-Item -Path (Join-Path $extracted 'desktop-app\\electron\\*') -Destination (Join-Path $app 'electron') -Recurse -Force
+    
+    Remove-Item -Recurse -Force $tempDir -ErrorAction SilentlyContinue
+    Remove-Item -Force $tempZip -ErrorAction SilentlyContinue
+  `;
+
+  exec(`powershell -NoProfile -ExecutionPolicy Bypass -Command "${psScript.replace(/"/g, '\\"').replace(/\n/g, ' ')}"`, (err) => {
+    isUpdating = false;
+    if (!err) {
+      console.log('[Auto-Updater] Standalone POS updated successfully! Reloading...');
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('update-status', { status: 'updated' });
+        setTimeout(() => {
+          if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.webContents.reload();
+          }
+        }, 1200);
+      }
+    } else {
+      console.error('[Auto-Updater] Standalone update error:', err);
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        mainWindow.webContents.send('update-status', { status: 'failed' });
+        if (manual) {
+          const { dialog } = require('electron');
+          dialog.showMessageBox(mainWindow, {
+            type: 'warning',
+            title: 'Update Check Failed',
+            message: 'Could not download updates. Please verify internet connection and try again.',
+          });
+        }
+      }
+    }
   });
 }
 

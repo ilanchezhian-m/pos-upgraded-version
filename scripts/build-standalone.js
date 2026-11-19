@@ -77,6 +77,9 @@ exit
 `
 fs.writeFileSync(path.join(outDir, 'Launch POS.bat'), quickLaunchBat, 'utf-8')
 
+// Copy UPDATE-APP.bat so the client can update with 1-click directly from GitHub
+fs.copyFileSync(path.join(rootDir, 'UPDATE-APP.bat'), path.join(outDir, 'UPDATE-APP.bat'))
+
 // Create a Readme inside the folder for the client
 const readmeTxt = `===========================================================
 Topi Vappa Restaurant POS - Standalone Windows Edition
@@ -89,6 +92,11 @@ ZERO INSTALLATION NEEDED:
 
 HOW TO RUN:
 Double-click: Topi Vappa POS.exe (or Launch POS.bat)
+
+HOW TO UPDATE DIRECTLY FROM GITHUB:
+Double-click: UPDATE-APP.bat
+(It automatically pulls all latest fixes and updates from the internet in 5 seconds.
+Your local customer orders, bills, and secret owner vault are 100% preserved and never overwritten!)
 
 FEATURES:
 1. Counter POS: Silent direct thermal printing (no browser prompts).
