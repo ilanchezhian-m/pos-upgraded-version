@@ -37,19 +37,50 @@ if %ERRORLEVEL% equ 0 (
   )
 )
 
+:: Check Node.js prerequisite
+where node >nul 2>&1
+if %ERRORLEVEL% neq 0 (
+  echo [ERROR] Node.js is not installed on this PC!
+  echo Please download and install Node.js (LTS version) from:
+  echo   https://nodejs.org
+  echo.
+  echo After installing Node.js, double-click START-DESKTOP.bat again.
+  echo.
+  pause
+  exit /b 1
+)
+
+:: ====================================================
+:: First-Time Setup on a New PC (Automatic Dependency Install)
+:: ====================================================
 if not exist "sync-server\node_modules\" (
-  echo [Info] Installing Sync Server dependencies...
-  call cmd /c "cd sync-server && npm install"
+  echo [1/4 Setup] Installing Sync Server dependencies...
+  call cmd /c "cd /d %~dp0sync-server && npm install"
 )
 
 if not exist "print-server\node_modules\" (
-  echo [Info] Installing Print Server dependencies...
-  call cmd /c "cd print-server && npm install"
+  echo [2/4 Setup] Installing Print Server dependencies...
+  call cmd /c "cd /d %~dp0print-server && npm install"
+)
+
+if not exist "captain-app\node_modules\" (
+  echo [3/4 Setup] Installing Captain Mobile App dependencies...
+  call cmd /c "cd /d %~dp0captain-app && npm install"
+)
+
+if not exist "desktop-app\node_modules\" (
+  echo [4/4 Setup] Installing Desktop POS App dependencies...
+  call cmd /c "cd /d %~dp0desktop-app && npm install"
 )
 
 if not exist "captain-app\dist\index.html" (
-  echo [Info] Building Captain App static web bundle...
-  call cmd /c "cd captain-app && npm run build"
+  echo [Setup] Building Captain App static web bundle...
+  call cmd /c "cd /d %~dp0captain-app && npm run build"
+)
+
+if not exist "desktop-app\dist\index.html" (
+  echo [Setup] Building Desktop POS static web bundle...
+  call cmd /c "cd /d %~dp0desktop-app && npm run build"
 )
 
 echo [1/3] Starting Print Server (Port 5001)...
