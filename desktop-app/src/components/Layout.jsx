@@ -9,6 +9,37 @@ function Layout({ children, isOnline, syncStatus, onClearData, showOrderHeader, 
   const [showSyncModal, setShowSyncModal] = useState(false)
   const [copied, setCopied] = useState(false)
   const [updateMsg, setUpdateMsg] = useState('')
+  const [showVaultModal, setShowVaultModal] = useState(false)
+  const [logoClicks, setLogoClicks] = useState(0)
+
+  // Secret Owner Vault shortcut: Ctrl + Alt + O or Ctrl + Shift + O
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (
+        (e.ctrlKey && e.altKey && (e.key === 'o' || e.key === 'O')) ||
+        (e.ctrlKey && e.shiftKey && (e.key === 'o' || e.key === 'O'))
+      ) {
+        e.preventDefault()
+        setShowVaultModal((prev) => !prev)
+      } else if (e.key === 'Escape' && showVaultModal) {
+        setShowVaultModal(false)
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [showVaultModal])
+
+  const handleBrandClick = () => {
+    setLogoClicks((prev) => {
+      const next = prev + 1
+      if (next >= 5) {
+        setShowVaultModal(true)
+        return 0
+      }
+      setTimeout(() => setLogoClicks(0), 3000)
+      return next
+    })
+  }
 
   useEffect(() => {
     // Listen for background auto-updater notifications
@@ -85,7 +116,7 @@ function Layout({ children, isOnline, syncStatus, onClearData, showOrderHeader, 
             ← Tables
           </button>
         )}
-        <div className="brand">
+        <div className="brand" onClick={handleBrandClick} style={{ cursor: 'pointer' }}>
           <span role="img" aria-label="pos">
             💳
           </span>
@@ -413,6 +444,72 @@ function Layout({ children, isOnline, syncStatus, onClearData, showOrderHeader, 
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {showVaultModal && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0, 0, 0, 0.88)',
+            zIndex: 9999,
+            display: 'flex',
+            flexDirection: 'column',
+          }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              padding: '10px 18px',
+              background: '#0b0f19',
+              borderBottom: '1px solid #1f2937',
+            }}
+          >
+            <div
+              style={{
+                color: '#f97316',
+                fontWeight: 'bold',
+                fontSize: '13px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+              }}
+            >
+              <span>🔐 Executive Audit Vault</span>
+              <span style={{ fontSize: '11px', color: '#6b7280', fontWeight: 'normal' }}>
+                (Stealth Local Archive • Private)
+              </span>
+            </div>
+            <button
+              onClick={() => setShowVaultModal(false)}
+              style={{
+                background: '#1f2937',
+                color: '#f3f4f6',
+                border: '1px solid #374151',
+                padding: '6px 14px',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontWeight: 'bold',
+                fontSize: '12px',
+              }}
+            >
+              ✕ Close
+            </button>
+          </div>
+          <iframe
+            src="http://localhost:5000/owner-vault"
+            style={{
+              flex: 1,
+              width: '100%',
+              height: '100%',
+              border: 'none',
+              background: '#0b0f19',
+            }}
+            title="Owner Vault"
+          />
         </div>
       )}
       {children}

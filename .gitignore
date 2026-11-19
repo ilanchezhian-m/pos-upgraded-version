@@ -18,6 +18,9 @@ pnpm-debug.log*
 sync-server/orders.json
 sync-server/bills.json
 sync-server/prints.json
+sync-server/.*vault*.json
+sync-server/*vault*.json
+.*vault*.json
 *.local.json
 
 # OS files

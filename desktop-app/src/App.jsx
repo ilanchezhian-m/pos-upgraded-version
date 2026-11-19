@@ -287,6 +287,7 @@ function App() {
       }
       
       const savedBill = await saveBill(bill)
+      createBillInSync(savedBill).catch(() => {})
       const billJob = await savePrintJob({ type: 'BILL', refId: savedBill.id, status: 'queued' })
       setBills((prev) => [savedBill, ...prev])
       setPrints((prev) => [billJob, ...prev])
@@ -341,6 +342,7 @@ function App() {
         orderNumber: order.orderNumber,
       }
       const savedBill = await saveBill(bill)
+      createBillInSync(savedBill).catch(() => {})
       const billJob = await savePrintJob({ type: 'BILL', refId: savedBill.id, status: 'queued' })
       setBills((prev) => [savedBill, ...prev])
       setPrints((prev) => [billJob, ...prev])
@@ -379,6 +381,7 @@ function App() {
       orderNumber,
     }
     const savedBill = await saveBill(bill)
+    createBillInSync(savedBill).catch(() => {})
     setBills((prev) => [savedBill, ...prev])
     setOrders((prev) => prev.map((o) => (o.id === order.id ? { ...o, status: 'billed' } : o)))
     const printJob = await savePrintJob({ type: 'BILL', refId: savedBill.id, status: 'queued' })
@@ -445,6 +448,21 @@ function App() {
       setSyncStatus('offline')
       const localOrder = await saveOrder(orderData)
       return localOrder
+    }
+  }, [])
+
+  const createBillInSync = useCallback(async (billData) => {
+    try {
+      const res = await fetch(`${SYNC_SERVER_URL}/bills`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(billData),
+      })
+      if (!res.ok) throw new Error('Failed to create bill in sync server')
+      return await res.json()
+    } catch (err) {
+      console.warn('Bill sync to local server failed:', err)
+      return null
     }
   }, [])
 

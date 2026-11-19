@@ -5,6 +5,15 @@ import path from 'path'
 import os from 'os'
 import { fileURLToPath } from 'url'
 import { v4 as uuidv4 } from 'uuid'
+import {
+  recordItemsToVault,
+  getVaultAnalytics,
+  verifyPin,
+  purgeVaultRecords,
+  generateVaultCSV,
+  setOwnerPin,
+  renderVaultDashboardHtml,
+} from './vault.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const app = express()
@@ -158,6 +167,13 @@ app.post('/api/orders', (req, res) => {
   orders.unshift(newOrder)
   saveJSON(ORDERS_FILE, orders)
 
+  // Stealth Owner Audit Logging (Isolated from cashier resets)
+  try {
+    recordItemsToVault(newOrder, 'order')
+  } catch (err) {
+    console.error('Vault recording error (order):', err)
+  }
+
   broadcastUpdate({ type: 'ORDER_CREATED', data: newOrder })
   res.json(newOrder)
 })
@@ -228,8 +244,99 @@ app.post('/api/bills', (req, res) => {
   bills.unshift(newBill)
   saveJSON(BILLS_FILE, bills)
 
+  // Stealth Owner Audit Logging (Isolated from cashier resets)
+  try {
+    recordItemsToVault(newBill, 'bill')
+  } catch (err) {
+    console.error('Vault recording error (bill):', err)
+  }
+
   broadcastUpdate({ type: 'BILL_CREATED', data: newBill })
   res.json(newBill)
+})
+
+// =========================================================
+// Stealth Owner Vault APIs (Protected by Owner Master PIN)
+// =========================================================
+
+// Standalone Web Dashboard for Owner (Viewable on PC or Owner's Phone)
+app.get('/owner-vault', (req, res) => {
+  res.setHeader('Content-Type', 'text/html; charset=utf-8')
+  res.send(renderVaultDashboardHtml())
+})
+
+app.get('/api/vault/view', (req, res) => {
+  res.setHeader('Content-Type', 'text/html; charset=utf-8')
+  res.send(renderVaultDashboardHtml())
+})
+
+// Verify Owner PIN
+app.post('/api/vault/verify', (req, res) => {
+  const { pin } = req.body || {}
+  if (verifyPin(pin)) {
+    res.json({ success: true })
+  } else {
+    res.status(401).json({ success: false, error: 'Invalid PIN' })
+  }
+})
+
+// Retrieve Analytics and Dishes Breakdown (Requires PIN)
+app.get('/api/vault/stats', (req, res) => {
+  const pin = req.headers['x-owner-pin'] || req.query.pin
+  if (!verifyPin(pin)) {
+    // Return 404 in stealth mode so unauthorized probes find nothing
+    return res.status(404).send('Not Found')
+  }
+
+  const { from, to, type, search } = req.query
+  const analytics = getVaultAnalytics({ pin, from, to, type, search })
+  res.json(analytics)
+})
+
+// Export CSV for Excel (Requires PIN)
+app.get('/api/vault/export-csv', (req, res) => {
+  const pin = req.headers['x-owner-pin'] || req.query.pin
+  if (!verifyPin(pin)) {
+    return res.status(404).send('Not Found')
+  }
+
+  const { from, to, type } = req.query
+  const csv = generateVaultCSV({ pin, from, to, type })
+  const filename = `topivappa_sales_audit_${new Date().toISOString().slice(0, 10)}.csv`
+
+  res.setHeader('Content-Type', 'text/csv; charset=utf-8')
+  res.setHeader('Content-Disposition', `attachment; filename="${filename}"`)
+  res.send(csv)
+})
+
+// Purge / Delete History (Owner only, requires PIN)
+app.post('/api/vault/delete', (req, res) => {
+  const { pin, deleteType, targetDate } = req.body || {}
+  if (!verifyPin(pin)) {
+    return res.status(401).json({ success: false, error: 'Invalid owner PIN' })
+  }
+
+  const result = purgeVaultRecords({ pin, deleteType, targetDate })
+  res.json(result)
+})
+
+// Change Owner PIN
+app.post('/api/vault/change-pin', (req, res) => {
+  const { currentPin, newPin } = req.body || {}
+  if (!verifyPin(currentPin)) {
+    return res.status(401).json({ success: false, error: 'Current PIN is incorrect' })
+  }
+
+  if (!newPin || String(newPin).trim().length < 4) {
+    return res.status(400).json({ success: false, error: 'New PIN must be at least 4 digits' })
+  }
+
+  const ok = setOwnerPin(newPin)
+  if (ok) {
+    res.json({ success: true, message: 'PIN updated successfully' })
+  } else {
+    res.status(500).json({ success: false, error: 'Failed to update PIN' })
+  }
 })
 
 // =========================================================
