@@ -28,6 +28,14 @@ function OrderEntryView({
   showMarkAsPaid,
   markTableAsPaid,
 }) {
+  const previousTotal = orders
+    .filter((o) => o.table === orderForm.table && o.status !== 'paid')
+    .reduce((sum, o) => sum + o.total, 0)
+  const combinedSubtotal = previousTotal + orderTotal
+  const combinedGrandTotal = combinedSubtotal * 1.05
+
+  const activeSubtotal = orderTotal
+  const activeGrandTotal = activeSubtotal * 1.05
   return (
     <>
       {!flowStarted ? (
@@ -176,14 +184,17 @@ function OrderEntryView({
                         <div className="order-subtotal">₹{order.total}</div>
                       </div>
                     ))}
-                  <div className="running-total">
-                    <strong>Total (All Orders):</strong>
-                    <strong className="total-amount">
-                      ₹
-                      {orders
-                        .filter((o) => o.table === orderForm.table && o.status !== 'paid')
-                        .reduce((sum, o) => sum + o.total, 0) + orderTotal}
-                    </strong>
+                  <div className="running-total" style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', color: '#64748b', fontSize: '13px' }}>
+                      <span>Subtotal (Excl. GST):</span>
+                      <span>₹{combinedSubtotal.toFixed(2)}</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <strong style={{ fontSize: '14px' }}>Grand Total (Incl. 5% GST):</strong>
+                      <strong className="total-amount" style={{ fontSize: '1.25rem', color: '#10b981' }}>
+                        ₹{combinedGrandTotal.toFixed(2)}
+                      </strong>
+                    </div>
                   </div>
                 </div>
               )}
@@ -232,8 +243,13 @@ function OrderEntryView({
 
               <div className="order-total">
                 <div>
-                  <div className="muted small">Total</div>
-                  <div className="order-total-value">₹{orderTotal}</div>
+                  <div className="muted small">Subtotal: ₹{activeSubtotal.toFixed(2)}</div>
+                  <div className="order-total-value" style={{ display: 'flex', alignItems: 'baseline', gap: '6px' }}>
+                    <span>₹{activeGrandTotal.toFixed(2)}</span>
+                    <span style={{ fontSize: '11px', color: '#64748b', fontWeight: 'normal' }}>
+                      (Grand Total)
+                    </span>
+                  </div>
                 </div>
                 <div className="order-total-actions">
                   <button

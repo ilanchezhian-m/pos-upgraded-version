@@ -9,6 +9,8 @@ function PrintPage() {
   const [prints, setPrints] = useState([])
   const [selectedPrintJob, setSelectedPrintJob] = useState(null)
   const [printers, setPrinters] = useState([])
+  const [kitchenPrinter, setKitchenPrinter] = useState(() => localStorage.getItem('desktop_kitchen_printer') || '')
+  const [billingPrinter, setBillingPrinter] = useState(() => localStorage.getItem('desktop_billing_printer') || '')
   const [selectedPrinter, setSelectedPrinter] = useState(() => localStorage.getItem('desktop_printer') || '')
   const [printStatusMsg, setPrintStatusMsg] = useState('')
 
@@ -23,10 +25,20 @@ function PrintPage() {
     }
   }, [isElectron])
 
-  const handlePrinterChange = (e) => {
+  const handleKitchenPrinterChange = (e) => {
     const val = e.target.value
-    setSelectedPrinter(val)
-    localStorage.setItem('desktop_printer', val)
+    setKitchenPrinter(val)
+    localStorage.setItem('desktop_kitchen_printer', val)
+    setPrintStatusMsg('✓ Kitchen printer saved: ' + (val || 'Default'))
+    setTimeout(() => setPrintStatusMsg(''), 3000)
+  }
+
+  const handleBillingPrinterChange = (e) => {
+    const val = e.target.value
+    setBillingPrinter(val)
+    localStorage.setItem('desktop_billing_printer', val)
+    setPrintStatusMsg('✓ Billing printer saved: ' + (val || 'Default'))
+    setTimeout(() => setPrintStatusMsg(''), 3000)
   }
 
   useEffect(() => {
@@ -81,14 +93,22 @@ function PrintPage() {
   const handlePrintNow = async () => {
     if (!selectedPrintJob) return
 
+    const isKOT = selectedPrintJob.type === 'KOT'
+    const targetPrinter = isKOT
+      ? (kitchenPrinter || undefined)
+      : (billingPrinter || undefined)
+    const targetLabel = isKOT
+      ? (kitchenPrinter ? `Kitchen Printer (${kitchenPrinter})` : 'Default Windows Printer')
+      : (billingPrinter ? `Billing Printer (${billingPrinter})` : 'Default Windows Printer')
+
     if (isElectron && window.electronAPI?.printSilent) {
-      setPrintStatusMsg('⏳ Printing silently...')
+      setPrintStatusMsg(`⏳ Printing silently to ${targetLabel}...`)
       try {
         const result = await window.electronAPI.printSilent({
-          deviceName: selectedPrinter || undefined,
+          deviceName: targetPrinter,
         })
         if (result?.success) {
-          setPrintStatusMsg('✓ Printed silently to ' + (selectedPrinter || 'Default Printer'))
+          setPrintStatusMsg(`✓ Printed silently to ${targetLabel}`)
           setTimeout(() => setPrintStatusMsg(''), 4000)
         } else {
           setPrintStatusMsg('⚠️ Print error: ' + (result?.error || 'Failed'))
@@ -121,6 +141,90 @@ function PrintPage() {
           </button>
         </div>
       </header>
+
+      {/* Persistent Printer Routing Bar (Save once, routes automatically) */}
+      <div
+        style={{
+          background: '#1e293b',
+          border: '1px solid #334155',
+          borderRadius: '10px',
+          padding: '12px 18px',
+          margin: '12px 0 16px 0',
+          display: 'flex',
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '12px',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <span style={{ fontSize: '20px' }}>⚙️</span>
+          <div>
+            <strong style={{ fontSize: '13px', color: '#f8fafc' }}>Saved Printer Routing</strong>
+            <div style={{ fontSize: '11px', color: '#94a3b8' }}>
+              Choose your printers once. Kitchen orders and customer bills will automatically route to them.
+            </div>
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', gap: '16px', alignItems: 'center', flexWrap: 'wrap' }}>
+          {/* Kitchen Printer Select */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+            <label style={{ fontSize: '11px', color: '#fb923c', fontWeight: 600 }}>
+              🍳 Kitchen (KOT) Printer:
+            </label>
+            <select
+              value={kitchenPrinter}
+              onChange={handleKitchenPrinterChange}
+              style={{
+                padding: '6px 10px',
+                borderRadius: '6px',
+                border: '1px solid #475569',
+                background: '#0f172a',
+                color: '#f8fafc',
+                fontSize: '12px',
+                minWidth: '180px',
+              }}
+              title="Saved destination printer for Kitchen KOTs"
+            >
+              <option value="">🖨️ (Default Windows Printer)</option>
+              {printers.map((p) => (
+                <option key={p.name} value={p.name}>
+                  {p.name} {p.isDefault ? '(Default)' : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Billing Printer Select */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+            <label style={{ fontSize: '11px', color: '#38bdf8', fontWeight: 600 }}>
+              💳 Billing / Counter Printer:
+            </label>
+            <select
+              value={billingPrinter}
+              onChange={handleBillingPrinterChange}
+              style={{
+                padding: '6px 10px',
+                borderRadius: '6px',
+                border: '1px solid #475569',
+                background: '#0f172a',
+                color: '#f8fafc',
+                fontSize: '12px',
+                minWidth: '180px',
+              }}
+              title="Saved destination printer for Customer Bills"
+            >
+              <option value="">🖨️ (Default Windows Printer)</option>
+              {printers.map((p) => (
+                <option key={p.name} value={p.name}>
+                  {p.name} {p.isDefault ? '(Default)' : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      </div>
 
       <div className="print-layout">
         {/* Left Panel - Job Queue */}
@@ -208,26 +312,22 @@ function PrintPage() {
 
                 <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
                   {isElectron && (
-                    <select
-                      value={selectedPrinter}
-                      onChange={handlePrinterChange}
+                    <span
                       style={{
-                        padding: '8px 12px',
+                        padding: '6px 12px',
                         borderRadius: '6px',
-                        border: '1px solid #475569',
-                        background: '#1e293b',
-                        color: '#f8fafc',
-                        fontSize: '13px',
+                        background: '#0f172a',
+                        border: '1px solid #334155',
+                        color: selectedPrintJob.type === 'KOT' ? '#fb923c' : '#38bdf8',
+                        fontSize: '12px',
+                        fontWeight: 600,
                       }}
-                      title="Select Windows Destination Printer"
+                      title="This job will be sent automatically to the saved printer"
                     >
-                      <option value="">🖨️ Windows Default Printer</option>
-                      {printers.map((p) => (
-                        <option key={p.name} value={p.name}>
-                          {p.name} {p.isDefault ? '(Default)' : ''}
-                        </option>
-                      ))}
-                    </select>
+                      🎯 Target: {selectedPrintJob.type === 'KOT'
+                        ? (kitchenPrinter ? `Kitchen (${kitchenPrinter})` : 'Default Windows Printer')
+                        : (billingPrinter ? `Billing (${billingPrinter})` : 'Default Windows Printer')}
+                    </span>
                   )}
 
                   <button className="button-print" onClick={handlePrintNow}>
