@@ -57,7 +57,7 @@ function ensureSyncServerRunning() {
 
 function checkForUpdates(manual = false) {
   if (isUpdating) return;
-  const projectRoot = path.join(__dirname, '../..');
+  const projectRoot = getAppRoot();
 
   if (!fs.existsSync(path.join(projectRoot, '.git'))) {
     if (manual && mainWindow && !mainWindow.isDestroyed()) {
