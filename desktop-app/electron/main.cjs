@@ -1,4 +1,5 @@
 const { app, BrowserWindow, ipcMain, Menu } = require('electron');
+const { autoUpdater } = require('electron-updater');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
@@ -9,15 +10,74 @@ let mainWindow = null;
 let isUpdating = false;
 let syncProcess = null;
 
+// Configure electron-updater
+autoUpdater.autoDownload = true;
+autoUpdater.autoInstallOnAppQuit = true;
+
+autoUpdater.on('checking-for-update', () => {
+  console.log('[AutoUpdater] Checking for release on GitHub...');
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('update-status', { status: 'checking' });
+  }
+});
+
+autoUpdater.on('update-available', (info) => {
+  console.log('[AutoUpdater] Update available:', info.version);
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('update-status', { status: 'available', version: info.version });
+  }
+});
+
+autoUpdater.on('update-not-available', (info) => {
+  console.log('[AutoUpdater] App is up to date.');
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('update-status', { status: 'latest', version: info.version });
+  }
+});
+
+autoUpdater.on('download-progress', (progressObj) => {
+  const percent = Math.round(progressObj.percent);
+  console.log(`[AutoUpdater] Download: ${percent}%`);
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('update-status', { status: 'downloading', percent });
+  }
+});
+
+autoUpdater.on('update-downloaded', (info) => {
+  console.log('[AutoUpdater] Update downloaded:', info.version);
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send('update-status', { status: 'downloaded', version: info.version });
+    const { dialog } = require('electron');
+    dialog.showMessageBox(mainWindow, {
+      type: 'info',
+      title: 'Topi Vappa POS Update',
+      message: `Version ${info.version} has been downloaded.\n\nRestart now to apply the new updates?`,
+      buttons: ['Restart Now', 'Update on Exit'],
+      defaultId: 0,
+      cancelId: 1
+    }).then(({ response }) => {
+      if (response === 0) {
+        autoUpdater.quitAndInstall(false, true);
+      }
+    });
+  }
+});
+
+autoUpdater.on('error', (err) => {
+  console.error('[AutoUpdater] Error in auto-updater:', err ? err.message : 'Unknown error');
+});
+
 function getAppRoot() {
   const candidates = [
+    process.resourcesPath,
+    path.join(process.resourcesPath || '', 'app'),
     path.join(__dirname, '../..'),
     path.join(__dirname, '..'),
     path.dirname(process.execPath),
     process.cwd(),
   ];
   for (const c of candidates) {
-    if (fs.existsSync(path.join(c, 'sync-server', 'server.js'))) {
+    if (c && fs.existsSync(path.join(c, 'sync-server', 'server.js'))) {
       return c;
     }
   }
@@ -35,9 +95,20 @@ function ensureSyncServerRunning() {
     const serverScript = path.join(projectRoot, 'sync-server', 'server.js');
     if (fs.existsSync(serverScript)) {
       try {
+        // Safe database folder in permanent AppData (immune to updates / uninstalls)
+        const userDataPath = app.getPath('userData');
+        const dataDir = path.join(userDataPath, 'pos-data');
+        if (!fs.existsSync(dataDir)) {
+          fs.mkdirSync(dataDir, { recursive: true });
+        }
+
         // Use Electron's built-in Node runner - works on any PC with ZERO Node.js install needed!
         const nodeRunner = process.execPath;
-        const env = { ...process.env, ELECTRON_RUN_AS_NODE: '1' };
+        const env = {
+          ...process.env,
+          ELECTRON_RUN_AS_NODE: '1',
+          POS_DATA_DIR: dataDir,
+        };
         syncProcess = spawn(nodeRunner, [serverScript], {
           cwd: path.join(projectRoot, 'sync-server'),
           windowsHide: true,
@@ -47,7 +118,7 @@ function ensureSyncServerRunning() {
         syncProcess.on('error', (err) => {
           console.error('[Sync-Server] Error launching sync server:', err);
         });
-        console.log('[Sync-Server] Embedded Wi-Fi sync server launched successfully via internal engine.');
+        console.log('[Sync-Server] Embedded Wi-Fi sync server launched successfully with protected data at:', dataDir);
       } catch (e) {
         console.error('[Sync-Server] Exception launching sync server:', e);
       }
@@ -56,6 +127,22 @@ function ensureSyncServerRunning() {
 }
 
 function checkForUpdates(manual = false) {
+  if (app.isPackaged) {
+    console.log('[AutoUpdater] Checking for updates via electron-updater (GitHub Releases)...');
+    autoUpdater.checkForUpdatesAndNotify().catch((err) => {
+      console.log('[AutoUpdater] Check failed:', err.message);
+      if (manual && mainWindow && !mainWindow.isDestroyed()) {
+        const { dialog } = require('electron');
+        dialog.showMessageBox(mainWindow, {
+          type: 'warning',
+          title: 'Update Check',
+          message: 'Could not connect to update server. Please verify internet connection.',
+        });
+      }
+    });
+    return;
+  }
+
   if (isUpdating) return;
   const projectRoot = getAppRoot();
 

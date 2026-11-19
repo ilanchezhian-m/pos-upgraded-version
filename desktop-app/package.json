@@ -11,7 +11,8 @@
     "start": "electron .",
     "electron:dev": "concurrently -k \"vite\" \"wait-on http://localhost:5173 && electron .\"",
     "pack": "npm run build && electron-builder --dir",
-    "dist": "npm run build && electron-builder --win"
+    "dist": "npm run build && electron-builder --win",
+    "publish": "npm run build && electron-builder --win --publish always"
   },
   "build": {
     "appId": "com.topivappa.pos",
@@ -19,25 +20,51 @@
     "directories": {
       "output": "release"
     },
+    "publish": {
+      "provider": "github",
+      "owner": "ilanchezhian-m",
+      "repo": "pos-upgraded-version"
+    },
     "files": [
       "dist/**/*",
       "electron/**/*",
       "package.json"
     ],
+    "extraResources": [
+      {
+        "from": "../sync-server",
+        "to": "sync-server",
+        "filter": [
+          "**/*",
+          "!node_modules/.cache",
+          "!orders.json",
+          "!bills.json",
+          "!prints.json",
+          "!.*vault*.json",
+          "!*vault*.json"
+        ]
+      },
+      {
+        "from": "../captain-app/dist",
+        "to": "captain-app/dist"
+      }
+    ],
     "win": {
       "target": [
-        "nsis",
-        "portable"
+        "nsis"
       ]
     },
     "nsis": {
       "oneClick": false,
+      "perMachine": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
-      "createStartMenuShortcut": true
+      "createStartMenuShortcut": true,
+      "shortcutName": "Topi Vappa POS"
     }
   },
   "dependencies": {
+    "electron-updater": "^6.8.11",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-router-dom": "^7.11.0"

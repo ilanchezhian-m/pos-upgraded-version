@@ -19,10 +19,30 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const app = express()
 const PORT = 5000
 
+// Protect local data: store in persistent userData folder if provided
+const DATA_DIR = process.env.POS_DATA_DIR || __dirname
+if (!fs.existsSync(DATA_DIR)) {
+  fs.mkdirSync(DATA_DIR, { recursive: true })
+}
+
+// Auto-migrate database files from __dirname to DATA_DIR if running in userData mode
+if (DATA_DIR !== __dirname) {
+  const migrateFiles = ['orders.json', 'bills.json', 'prints.json']
+  for (const f of migrateFiles) {
+    const src = path.join(__dirname, f)
+    const dest = path.join(DATA_DIR, f)
+    if (fs.existsSync(src) && !fs.existsSync(dest)) {
+      try {
+        fs.copyFileSync(src, dest)
+      } catch (_) {}
+    }
+  }
+}
+
 // Local JSON Database file paths (Zero cloud, 100% on PC disk)
-const ORDERS_FILE = path.join(__dirname, 'orders.json')
-const BILLS_FILE = path.join(__dirname, 'bills.json')
-const PRINTS_FILE = path.join(__dirname, 'prints.json')
+const ORDERS_FILE = path.join(DATA_DIR, 'orders.json')
+const BILLS_FILE = path.join(DATA_DIR, 'bills.json')
+const PRINTS_FILE = path.join(DATA_DIR, 'prints.json')
 
 // Detect Host PC's Wi-Fi / LAN IP address
 export function getLocalIPAddress() {
@@ -388,11 +408,24 @@ app.post('/api/clear-all', (req, res) => {
 // =========================================================
 // Static Serving of Captain App (Phone / Tablet on Wi-Fi)
 // =========================================================
-const captainDist = path.join(__dirname, '../captain-app/dist')
-if (fs.existsSync(captainDist)) {
+const captainDistCandidates = [
+  process.env.CAPTAIN_DIST_PATH,
+  path.join(__dirname, '../captain-app/dist'),
+  path.join(__dirname, 'captain-app/dist'),
+  path.join(__dirname, '../../captain-app/dist'),
+  path.join(__dirname, '../resources/captain-app/dist'),
+]
+let captainDist = null
+for (const cand of captainDistCandidates) {
+  if (cand && fs.existsSync(cand)) {
+    captainDist = cand
+    break
+  }
+}
+if (captainDist) {
   app.use(express.static(captainDist))
   app.get('*', (req, res, next) => {
-    if (req.path.startsWith('/api')) return next()
+    if (req.path.startsWith('/api') || req.path.startsWith('/owner-vault')) return next()
     res.sendFile(path.join(captainDist, 'index.html'))
   })
 }

@@ -4,8 +4,29 @@ import { fileURLToPath } from 'url'
 import { v4 as uuidv4 } from 'uuid'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const VAULT_FILE = path.join(__dirname, '.system_audit_vault.json')
-const VAULT_CONFIG_FILE = path.join(__dirname, '.vault_config.json')
+
+// Protect local data: store in persistent userData folder if provided
+const DATA_DIR = process.env.POS_DATA_DIR || __dirname
+if (!fs.existsSync(DATA_DIR)) {
+  fs.mkdirSync(DATA_DIR, { recursive: true })
+}
+
+// Auto-migrate vault files from __dirname to DATA_DIR if running in userData mode
+if (DATA_DIR !== __dirname) {
+  const vaultFiles = ['.system_audit_vault.json', '.vault_config.json']
+  for (const f of vaultFiles) {
+    const src = path.join(__dirname, f)
+    const dest = path.join(DATA_DIR, f)
+    if (fs.existsSync(src) && !fs.existsSync(dest)) {
+      try {
+        fs.copyFileSync(src, dest)
+      } catch (_) {}
+    }
+  }
+}
+
+const VAULT_FILE = path.join(DATA_DIR, '.system_audit_vault.json')
+const VAULT_CONFIG_FILE = path.join(DATA_DIR, '.vault_config.json')
 
 // Default master PIN is '7788'
 export function getOwnerPin() {
