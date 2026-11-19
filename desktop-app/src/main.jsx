@@ -1,6 +1,6 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
-import { BrowserRouter } from 'react-router-dom'
+import { HashRouter } from 'react-router-dom'
 import './index.css'
 import App from './App.jsx'
 
@@ -12,42 +12,8 @@ window.addEventListener('vite:preloadError', (event) => {
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <BrowserRouter>
+    <HashRouter>
       <App />
-    </BrowserRouter>
+    </HashRouter>
   </StrictMode>,
 )
-
-// PWA Service Worker with auto-update
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker
-      .register('/service-worker.js')
-      .then((reg) => {
-        // Check for updates on every page load
-        reg.update().catch(() => {})
-
-        reg.addEventListener('updatefound', () => {
-          const newWorker = reg.installing
-          if (newWorker) {
-            newWorker.addEventListener('statechange', () => {
-              if (newWorker.state === 'activated' && navigator.serviceWorker.controller) {
-                console.log('New version activated, reloading...')
-                window.location.reload()
-              }
-            })
-          }
-        })
-      })
-      .catch((err) => console.error('SW registration failed', err))
-
-    // Reload when controller changes
-    let refreshing = false
-    navigator.serviceWorker.addEventListener('controllerchange', () => {
-      if (!refreshing) {
-        refreshing = true
-        window.location.reload()
-      }
-    })
-  })
-}

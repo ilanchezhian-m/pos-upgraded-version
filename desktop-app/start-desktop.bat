@@ -13,10 +13,8 @@ if not exist "node_modules\" (
   call npm install
 )
 
-if not exist "dist\index.html" (
-  echo [Info] Building frontend application...
-  call npm run build
-)
+echo [Info] Building frontend application...
+call npm run build
 
 echo [Info] Launching Desktop POS...
 call npx electron .

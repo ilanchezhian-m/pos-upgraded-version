@@ -57,6 +57,15 @@ function createWindow() {
     mainWindow.setTitle('Topi Vappa POS - Desktop Edition');
   });
 
+  // Self-heal on any load failure
+  mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
+    console.warn('Page failed to load:', errorCode, errorDescription);
+    const indexPath = path.join(__dirname, '../dist/index.html');
+    if (fs.existsSync(indexPath)) {
+      mainWindow.loadFile(indexPath);
+    }
+  });
+
   mainWindow.on('closed', () => {
     mainWindow = null;
   });
@@ -72,7 +81,17 @@ function setupMenu() {
         {
           label: 'Reload App',
           accelerator: 'CmdOrCtrl+R',
-          click: () => mainWindow && mainWindow.reload(),
+          click: () => {
+            if (mainWindow) {
+              const indexPath = path.join(__dirname, '../dist/index.html');
+              const curUrl = mainWindow.webContents.getURL() || '';
+              if (curUrl.startsWith('file:') && !curUrl.includes('index.html')) {
+                mainWindow.loadFile(indexPath);
+              } else {
+                mainWindow.webContents.reload();
+              }
+            }
+          },
         },
         {
           label: 'Toggle Developer Tools',
