@@ -14,6 +14,12 @@ npm-debug.log*
 yarn-debug.log*
 pnpm-debug.log*
 
+# Local runtime database (Zero cloud POS storage)
+sync-server/orders.json
+sync-server/bills.json
+sync-server/prints.json
+*.local.json
+
 # OS files
 .DS_Store
 Thumbs.db

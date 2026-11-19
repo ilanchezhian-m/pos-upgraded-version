@@ -8,6 +8,29 @@ function Layout({ children, isOnline, syncStatus, onClearData, showOrderHeader, 
   const [localIP, setLocalIP] = useState('')
   const [showSyncModal, setShowSyncModal] = useState(false)
   const [copied, setCopied] = useState(false)
+  const [updateMsg, setUpdateMsg] = useState('')
+
+  useEffect(() => {
+    // Listen for background auto-updater notifications
+    if (typeof window !== 'undefined' && window.electronAPI?.onUpdateStatus) {
+      const unsub = window.electronAPI.onUpdateStatus((data) => {
+        if (data?.status === 'updating') {
+          setUpdateMsg('⏳ Updating app from GitHub...')
+        } else if (data?.status === 'updated') {
+          setUpdateMsg('✓ Updated to latest! Reloading...')
+        } else if (data?.status === 'failed') {
+          setUpdateMsg('⚠️ Update attempt failed.')
+          setTimeout(() => setUpdateMsg(''), 5000)
+        } else if (data?.status === 'latest') {
+          setUpdateMsg('✓ Up to date (' + (data.commit || '') + ')')
+          setTimeout(() => setUpdateMsg(''), 4000)
+        }
+      })
+      return () => {
+        if (unsub) unsub()
+      }
+    }
+  }, [])
 
   useEffect(() => {
     // 1. Try Electron native IP detection
@@ -71,6 +94,11 @@ function Layout({ children, isOnline, syncStatus, onClearData, showOrderHeader, 
           {typeof window !== 'undefined' && window.electronAPI?.isElectron && (
             <span className="pill" style={{ background: '#3b82f6', color: '#fff', fontWeight: 'bold' }}>
               ⚡ Silent Print Active
+            </span>
+          )}
+          {updateMsg && (
+            <span className="pill" style={{ background: '#7c3aed', color: '#fff', fontWeight: 'bold' }}>
+              {updateMsg}
             </span>
           )}
           {isOrderPage && showOrderHeader && flowStarted && (
@@ -328,6 +356,41 @@ function Layout({ children, isOnline, syncStatus, onClearData, showOrderHeader, 
               </ol>
               <div style={{ marginTop: '12px', padding: '8px 12px', background: '#064e3b', color: '#a7f3d0', borderRadius: '6px', fontSize: '12px' }}>
                 ✓ Any order created by a Captain will instantly appear on this screen and automatically queue in the thermal print center!
+              </div>
+            </div>
+
+            {/* Silent Auto-Update Section */}
+            <div style={{ marginTop: '16px', background: '#0f172a', padding: '14px', borderRadius: '8px', border: '1px solid #334155' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <div style={{ fontSize: '13px', fontWeight: 'bold', color: '#f8fafc' }}>
+                    🔄 GitHub Silent Auto-Updates
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#94a3b8', marginTop: '2px' }}>
+                    Checks for new commits automatically every 5 minutes.
+                  </div>
+                </div>
+                {typeof window !== 'undefined' && window.electronAPI?.checkForUpdates && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setUpdateMsg('⏳ Checking GitHub for updates...')
+                      window.electronAPI.checkForUpdates()
+                    }}
+                    style={{
+                      background: '#4338ca',
+                      color: 'white',
+                      border: 'none',
+                      padding: '8px 14px',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      fontWeight: 'bold',
+                      fontSize: '12px',
+                    }}
+                  >
+                    Check Now
+                  </button>
+                )}
               </div>
             </div>
 

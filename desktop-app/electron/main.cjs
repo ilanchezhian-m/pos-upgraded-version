@@ -2,8 +2,126 @@ const { app, BrowserWindow, ipcMain, Menu } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const os = require('os');
+const { exec, spawn } = require('child_process');
+const http = require('http');
 
 let mainWindow = null;
+let isUpdating = false;
+let syncProcess = null;
+
+function ensureSyncServerRunning() {
+  const req = http.get('http://127.0.0.1:5000/api/orders', (res) => {
+    console.log('[Sync-Server] Local Wi-Fi sync server is already active on port 5000.');
+  });
+
+  req.on('error', () => {
+    console.log('[Sync-Server] Port 5000 inactive. Starting embedded sync server...');
+    const projectRoot = path.join(__dirname, '../..');
+    const serverScript = path.join(projectRoot, 'sync-server', 'server.js');
+    if (fs.existsSync(serverScript)) {
+      try {
+        syncProcess = spawn('node', [serverScript], {
+          cwd: path.join(projectRoot, 'sync-server'),
+          windowsHide: true,
+          stdio: 'ignore',
+        });
+        syncProcess.on('error', (err) => {
+          console.error('[Sync-Server] Error launching sync server:', err);
+        });
+        console.log('[Sync-Server] Embedded Wi-Fi sync server launched successfully.');
+      } catch (e) {
+        console.error('[Sync-Server] Exception launching sync server:', e);
+      }
+    }
+  });
+}
+
+function checkForUpdates(manual = false) {
+  if (isUpdating) return;
+  const projectRoot = path.join(__dirname, '../..');
+
+  if (!fs.existsSync(path.join(projectRoot, '.git'))) {
+    if (manual && mainWindow && !mainWindow.isDestroyed()) {
+      const { dialog } = require('electron');
+      dialog.showMessageBox(mainWindow, {
+        type: 'info',
+        title: 'Auto-Update',
+        message: 'Git repository not found. Auto-updates run from git-connected installations.',
+      });
+    }
+    return;
+  }
+
+  // Fetch latest commits from GitHub
+  exec('git fetch origin main', { cwd: projectRoot }, (fetchErr) => {
+    if (fetchErr) {
+      if (manual && mainWindow && !mainWindow.isDestroyed()) {
+        const { dialog } = require('electron');
+        dialog.showMessageBox(mainWindow, {
+          type: 'warning',
+          title: 'Update Check Failed',
+          message: 'Could not connect to GitHub. Please check your internet connection.',
+        });
+      }
+      return;
+    }
+
+    exec('git rev-parse HEAD', { cwd: projectRoot }, (err1, localSha) => {
+      if (err1 || !localSha) return;
+
+      exec('git rev-parse origin/main', { cwd: projectRoot }, (err2, remoteSha) => {
+        if (err2 || !remoteSha) return;
+
+        const local = localSha.trim();
+        const remote = remoteSha.trim();
+
+        if (local !== remote) {
+          console.log('[Auto-Updater] New commit detected on GitHub:', remote);
+          isUpdating = true;
+
+          if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.webContents.send('update-status', { status: 'updating', commit: remote.slice(0, 7) });
+          }
+
+          // Pull changes and rebuild automatically
+          exec('git pull origin main && npm --prefix desktop-app run build && npm --prefix captain-app run build', { cwd: projectRoot }, (buildErr) => {
+            isUpdating = false;
+            if (!buildErr) {
+              console.log('[Auto-Updater] App updated successfully! Reloading...');
+              if (mainWindow && !mainWindow.isDestroyed()) {
+                mainWindow.webContents.send('update-status', { status: 'updated', commit: remote.slice(0, 7) });
+                // Silently reload window to activate new build immediately
+                setTimeout(() => {
+                  if (mainWindow && !mainWindow.isDestroyed()) {
+                    mainWindow.webContents.reload();
+                  }
+                }, 1500);
+              }
+            } else {
+              console.error('[Auto-Updater] Build failed:', buildErr);
+              if (mainWindow && !mainWindow.isDestroyed()) {
+                mainWindow.webContents.send('update-status', { status: 'failed' });
+              }
+            }
+          });
+        } else {
+          console.log('[Auto-Updater] App is up to date.');
+          if (mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.webContents.send('update-status', { status: 'latest', commit: local.slice(0, 7) });
+            if (manual) {
+              const { dialog } = require('electron');
+              dialog.showMessageBox(mainWindow, {
+                type: 'info',
+                title: 'Topi Vappa POS',
+                message: `Your app is already up to date!\n\nCurrent Version: ${local.slice(0, 7)}`,
+              });
+            }
+          }
+        }
+      });
+    });
+  });
+}
 
 function getLocalIP() {
   const interfaces = os.networkInterfaces();
@@ -71,6 +189,10 @@ function createWindow() {
   });
 
   setupMenu();
+
+  // Background Auto-Update: Check 10s after startup, then every 5 minutes silently
+  setTimeout(() => checkForUpdates(false), 10000);
+  setInterval(() => checkForUpdates(false), 5 * 60 * 1000);
 }
 
 function setupMenu() {
@@ -78,6 +200,11 @@ function setupMenu() {
     {
       label: 'File',
       submenu: [
+        {
+          label: 'Check for Updates from GitHub',
+          accelerator: 'CmdOrCtrl+U',
+          click: () => checkForUpdates(true),
+        },
         {
           label: 'Reload App',
           accelerator: 'CmdOrCtrl+R',
@@ -152,7 +279,13 @@ function setupMenu() {
 // Silent Printing IPC Handlers
 // =========================================================
 
-// 0. Get Host Wi-Fi IP address
+// 0. Auto-Update from GitHub
+ipcMain.handle('check-for-updates', async () => {
+  checkForUpdates(true);
+  return { status: 'checking' };
+});
+
+// 0.1. Get Host Wi-Fi IP address
 ipcMain.handle('get-local-ip', async () => {
   return getLocalIP();
 });
@@ -300,7 +433,19 @@ ipcMain.handle('print-receipt', async (event, { html, deviceName = '', widthMm =
 });
 
 // App Lifecycle
-app.whenReady().then(createWindow);
+app.whenReady().then(() => {
+  ensureSyncServerRunning();
+  createWindow();
+});
+
+app.on('before-quit', () => {
+  if (syncProcess) {
+    try {
+      syncProcess.kill();
+    } catch (e) {}
+    syncProcess = null;
+  }
+});
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') {
