@@ -9,6 +9,21 @@ let mainWindow = null;
 let isUpdating = false;
 let syncProcess = null;
 
+function getAppRoot() {
+  const candidates = [
+    path.join(__dirname, '../..'),
+    path.join(__dirname, '..'),
+    path.dirname(process.execPath),
+    process.cwd(),
+  ];
+  for (const c of candidates) {
+    if (fs.existsSync(path.join(c, 'sync-server', 'server.js'))) {
+      return c;
+    }
+  }
+  return path.join(__dirname, '../..');
+}
+
 function ensureSyncServerRunning() {
   const req = http.get('http://127.0.0.1:5000/api/orders', (res) => {
     console.log('[Sync-Server] Local Wi-Fi sync server is already active on port 5000.');
@@ -16,19 +31,23 @@ function ensureSyncServerRunning() {
 
   req.on('error', () => {
     console.log('[Sync-Server] Port 5000 inactive. Starting embedded sync server...');
-    const projectRoot = path.join(__dirname, '../..');
+    const projectRoot = getAppRoot();
     const serverScript = path.join(projectRoot, 'sync-server', 'server.js');
     if (fs.existsSync(serverScript)) {
       try {
-        syncProcess = spawn('node', [serverScript], {
+        // Use Electron's built-in Node runner - works on any PC with ZERO Node.js install needed!
+        const nodeRunner = process.execPath;
+        const env = { ...process.env, ELECTRON_RUN_AS_NODE: '1' };
+        syncProcess = spawn(nodeRunner, [serverScript], {
           cwd: path.join(projectRoot, 'sync-server'),
           windowsHide: true,
           stdio: 'ignore',
+          env: env,
         });
         syncProcess.on('error', (err) => {
           console.error('[Sync-Server] Error launching sync server:', err);
         });
-        console.log('[Sync-Server] Embedded Wi-Fi sync server launched successfully.');
+        console.log('[Sync-Server] Embedded Wi-Fi sync server launched successfully via internal engine.');
       } catch (e) {
         console.error('[Sync-Server] Exception launching sync server:', e);
       }
